@@ -1,0 +1,10 @@
+
+# Datos locales y archivos generados
+*.parquet
+*.pkl
+*.rds
+.DS_Store
+.Rapp.history
+__pycache__/
+*.pyc
+.venv/
