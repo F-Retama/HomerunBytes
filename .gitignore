@@ -3,6 +3,8 @@
 *.parquet
 *.pkl
 *.rds
+*.csv
+!stuff_plus_data_dictionary.csv
 .DS_Store
 .Rapp.history
 __pycache__/

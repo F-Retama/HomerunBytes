@@ -1,0 +1,188 @@
+FASTBALL TIE-BREAK AUDIT
+pitcher_anon_id  year  Four-Seam n  Sinker n  Four-Seam mean RelSpeed  Sinker mean RelSpeed selected_primary_fastball      tie_break_reason
+  pitcher_00044  2025           24        24                90.897074             90.005598                 Four-Seam higher_mean_rel_speed
+  pitcher_00191  2026           52        52                91.132897             90.906110                 Four-Seam higher_mean_rel_speed
+  pitcher_00474  2026          120       120                93.455249             92.068724                 Four-Seam higher_mean_rel_speed
+  pitcher_00541  2026           42        42                91.799723             91.574631                 Four-Seam higher_mean_rel_speed
+  pitcher_00660  2025           93        93                92.111245             91.121450                 Four-Seam higher_mean_rel_speed
+  pitcher_01088  2025           72        72                93.335363             92.991914                 Four-Seam higher_mean_rel_speed
+
+TRAIN MISSINGNESS
+velo_diff_vs_fb          2.11%
+ivb_diff_vs_fb           2.17%
+hb_diff_vs_fb            2.17%
+spin_diff_vs_fb          2.12%
+pitch_usage_pct          0.00%
+release_distance_vs_fb   2.11%
+extension_diff_vs_fb     2.23%
+
+TEST MISSINGNESS
+velo_diff_vs_fb          100.00%
+ivb_diff_vs_fb           100.00%
+hb_diff_vs_fb            100.00%
+spin_diff_vs_fb          100.00%
+pitch_usage_pct          100.00%
+release_distance_vs_fb   100.00%
+extension_diff_vs_fb     100.00%
+
+FB REFERENCES
+Train pitcher-years with FB profile: 1157
+Train rows with FB reference: 503750
+Train coverage: 0.978921
+Test rows with FB reference: 0
+Test coverage: 0.000000
+
+LEAKAGE AUDIT
+Train pitchers: 907
+Test pitchers: 227
+Pitchers compartidos: 0
+fb_profile pitcher-years: 1157
+fb_profile y usage: todos los pitchers y pitcher-years pertenecen a train: OK
+fb_profile duplicate keys: 0
+usage duplicate keys: 0
+Train rows: 514597 -> 514597; orden y valores originales: OK
+Train duplicate PitchUID: 0 -> 0
+Test rows: 116493 -> 116493; orden y valores originales: OK
+Test duplicate PitchUID: 0 -> 0
+Merges many_to_one: OK; filas añadidas por merges: 0
+Usage en [0, 1], conteos y cocientes (todos los grupos): OK
+FB tipo, umbral, conteos y medias (todos los perfiles): OK
+Test no visto: siete features 100% NaN, sin fallback: OK
+
+MERGE KEY DTYPES
+pitcher_anon_id: train=object, test=object, usage=object, fb_profile=object
+year: train=int32, test=int32, usage=int32, fb_profile=int32
+AutoPitchType: train=category, test=category, usage=category
+
+PRIMARY FASTBALL TIES
+Pitcher-years con empate máximo: 14
+Con al menos 20 pitches: 6
+Desempate determinístico: conteo, velocidad media válida, prioridad final Four-Seam.
+
+SEASON-FORWARD 2024 -> 2025
+Evaluation year: 2025
+Total evaluation pitchers: 627
+Pitchers with prior history: 283
+Pitchers without prior history: 344
+% pitchers with history: 45.14%
+Evaluation rows: 255749
+Rows with FB reference: 132886
+FB reference coverage: 0.519595
+ARSENAL FEATURE MISSINGNESS (all evaluation rows)
+velo_diff_vs_fb          48.04%
+ivb_diff_vs_fb           48.04%
+hb_diff_vs_fb            48.04%
+spin_diff_vs_fb          48.04%
+pitch_usage_pct          46.40%
+release_distance_vs_fb   48.04%
+extension_diff_vs_fb     48.11%
+Rows with prior history (eligible cohort): 138110
+FB reference coverage within eligible cohort: 0.962175
+ARSENAL FEATURE MISSINGNESS (prior-history cohort only)
+velo_diff_vs_fb          3.78%
+ivb_diff_vs_fb           3.78%
+hb_diff_vs_fb            3.78%
+spin_diff_vs_fb          3.78%
+pitch_usage_pct          0.75%
+release_distance_vs_fb   3.78%
+extension_diff_vs_fb     3.91%
+Historical tied primary FB candidates >=20 (pitchers): 0
+Tie handling: count, valid mean RelSpeed, Four-Seam final priority.
+
+SEASON-FORWARD 2024-2025 -> 2026
+Evaluation year: 2026
+Total evaluation pitchers: 550
+Pitchers with prior history: 301
+Pitchers without prior history: 249
+% pitchers with history: 54.73%
+Evaluation rows: 132243
+Rows with FB reference: 88409
+FB reference coverage: 0.668534
+ARSENAL FEATURE MISSINGNESS (all evaluation rows)
+velo_diff_vs_fb          33.15%
+ivb_diff_vs_fb           33.18%
+hb_diff_vs_fb            33.18%
+spin_diff_vs_fb          33.15%
+pitch_usage_pct          32.37%
+release_distance_vs_fb   33.15%
+extension_diff_vs_fb     33.22%
+Rows with prior history (eligible cohort): 90176
+FB reference coverage within eligible cohort: 0.980405
+ARSENAL FEATURE MISSINGNESS (prior-history cohort only)
+velo_diff_vs_fb          1.96%
+ivb_diff_vs_fb           2.01%
+hb_diff_vs_fb            2.01%
+spin_diff_vs_fb          1.96%
+pitch_usage_pct          0.82%
+release_distance_vs_fb   1.96%
+extension_diff_vs_fb     2.06%
+Historical tied primary FB candidates >=20 (pitchers): 2
+Tie handling: count, valid mean RelSpeed, Four-Seam final priority.
+
+PRIMARY FASTBALL STABILITY
+2024 -> 2025 | comparable pitcher-years: 249 | same: 227 | changed: 22 | stable: 91.16%
+2025 -> 2026 | comparable pitcher-years: 236 | same: 210 | changed: 26 | stable: 88.98%
+Changed cases (first 10; all cases saved in 04_primary_fastball_changes.csv):
+pitcher_anon_id  previous_year  future_year previous_primary_fb future_primary_fb  previous_primary_fb_n  future_primary_fb_n
+  pitcher_00088           2024         2025              Sinker         Four-Seam                    125                  110
+  pitcher_00135           2024         2025           Four-Seam            Sinker                     59                  135
+  pitcher_00157           2024         2025              Sinker         Four-Seam                    236                  391
+  pitcher_00295           2024         2025              Sinker         Four-Seam                     29                  176
+  pitcher_00301           2024         2025           Four-Seam            Sinker                     54                  185
+  pitcher_00331           2024         2025              Sinker         Four-Seam                    284                  228
+  pitcher_00431           2024         2025           Four-Seam            Sinker                    342                   39
+  pitcher_00440           2024         2025              Sinker         Four-Seam                    126                   69
+  pitcher_00461           2024         2025              Sinker         Four-Seam                     82                  415
+  pitcher_00507           2024         2025              Sinker         Four-Seam                     26                   43
+Comparable = valid >=20-pitch primary FB in both consecutive years; deterministic ties included.
+
+PITCH USAGE STABILITY
+Units: proportion [0,1]; unweighted pitcher-pitchtype pairs observed in both periods.
+2024 -> 2025
+n comparable pitcher-pitchtype pairs: 1491
+mean absolute usage change: 0.064775
+median absolute usage change: 0.041975
+               count     mean   median
+AutoPitchType                         
+Changeup         249 0.057175 0.037212
+Curveball        221 0.048175 0.034078
+Cutter           153 0.040796 0.017674
+Four-Seam        274 0.091260 0.076898
+Sinker           257 0.071097 0.043095
+Slider           271 0.074441 0.061098
+Splitter          66 0.030366 0.009858
+2024-2025 -> 2026
+n comparable pitcher-pitchtype pairs: 1579
+mean absolute usage change: 0.067860
+median absolute usage change: 0.044526
+               count     mean   median
+AutoPitchType                         
+Changeup         278 0.062235 0.041093
+Curveball        227 0.055323 0.037286
+Cutter           156 0.040896 0.021582
+Four-Seam        290 0.085011 0.061480
+Sinker           276 0.077851 0.051084
+Slider           289 0.079928 0.059302
+Splitter          63 0.026545 0.011106
+
+PRIMARY FASTBALL DETERMINISM CHECK
+PASS
+Contexts: holdout train, historical 2024, historical 2024-2025, annual descriptive audit.
+
+LEAKAGE AUDIT
+Pitcher holdout unchanged; overlap 0; test arsenal 100% NaN: PASS
+Pitcher holdout reference provenance, unique keys, original row counts/values: PASS
+2024 -> 2025: exact history years [2024], evaluation year 2025: PASS
+2024 -> 2025: max(history year) < min(evaluation year), no shared rows/PitchUID: PASS
+2024 -> 2025: FB/usage sources only history; unique keys; dtypes; counts/means/usage bounds: PASS
+2024 -> 2025: rows 255749 -> 255749, original order/values preserved: PASS
+2024 -> 2025: merge-created duplicate pitches 0; unknown pitchers/types remain NaN: PASS
+2024-2025 -> 2026: exact history years [2024, 2025], evaluation year 2026: PASS
+2024-2025 -> 2026: max(history year) < min(evaluation year), no shared rows/PitchUID: PASS
+2024-2025 -> 2026: FB/usage sources only history; unique keys; dtypes; counts/means/usage bounds: PASS
+2024-2025 -> 2026: rows 132243 -> 132243, original order/values preserved: PASS
+2024-2025 -> 2026: merge-created duplicate pitches 0; unknown pitchers/types remain NaN: PASS
+Future primary FB and future usage used only in descriptive audit: PASS
+No models, no fallbacks, no NaN filling: PASS
+
+Auditoría completada. No se entrenaron modelos ni se modificaron datasets.
