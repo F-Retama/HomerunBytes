@@ -1,0 +1,664 @@
+05_target_definitions.py
+Dataset: stuff_model_df.parquet
+SHA256: 52d439289aa66f7e235bc60982bd7a2ea728e0ab533b7c10eb8e837e47f1415b
+Python: 3.9.6
+pandas: 2.3.3; numpy: 2.0.2
+Scope: todos los registros originales; sin filtrar pitch type, pitcher o target.
+
+========================================================================
+A. COLUMN AVAILABILITY
+========================================================================
+Dataset completo: 635002 filas; 84 columnas; sin filtros V1.
+                          status     dtype
+column                                    
+PitchCall                     OK  category
+KorBB                         OK    object
+play_result                   OK  category
+hit_type                      OK    object
+ExitSpeed                     OK   float64
+Angle                         OK   float64
+RunsScored                    OK   float64
+OutsOnPlay                    OK   float64
+is_swing                      OK   float64
+is_whiff                      OK   float64
+is_contact                    OK   float64
+is_called_strike              OK   float64
+is_swinging_strike            OK   float64
+is_ball_in_play               OK   float64
+is_batted                     OK   float64
+is_hit                        OK   float64
+single                        OK   float64
+double                        OK   float64
+triple                        OK   float64
+home_run                      OK   float64
+base_on_balls                 OK   float64
+strikeout                     OK   float64
+is_hit_by_pitch               OK   float64
+in_strike_zone                OK     int32
+outside_strike_zone           OK   float64
+swung_outside_strike_zone     OK   float64
+Encontradas: 26/26
+Faltantes: ninguna
+
+========================================================================
+B. REAL CATEGORIES — value_counts(dropna=False)
+========================================================================
+
+PitchCall
+                           n       pct
+PitchCall                             
+BallCalled            226061 35.600045
+InPlay                115946 18.259155
+FoulBallNotFieldable  104081 16.390657
+StrikeCalled           97810 15.403101
+StrikeSwinging         71914 11.325004
+BallinDirt             11353  1.787868
+FoulBall                2799  0.440786
+HitByPitch              2280  0.359054
+FoulBallFieldable       1917  0.301889
+Undefined                841  0.132441
+BallIntentional            0  0.000000
+AutomaticBall              0  0.000000
+AutomaticStrike            0  0.000000
+
+KorBB
+                n       pct
+KorBB                      
+Undefined  588525 92.680810
+Strikeout   30648  4.826441
+Walk        15829  2.492748
+
+play_result
+                        n       pct
+play_result                        
+BallCalled         210743 33.187769
+NeutralPlay        199209 31.371397
+Out                 66922 10.538864
+StrikeSwinging      47593  7.494937
+Strikeout           30648  4.826441
+Single              28579  4.500616
+Walk                15829  2.492748
+BallinDirt          10864  1.710861
+Double               7800  1.228343
+HomeRun              4616  0.726927
+FieldersChoice       3640  0.573227
+HitByPitch           2258  0.355589
+Sacrifice            1932  0.304251
+FoulBallFieldable    1917  0.301889
+Error                1747  0.275117
+Triple                705  0.111023
+StrikeCalled            0  0.000000
+InPlay                  0  0.000000
+
+hit_type
+                 n       pct
+hit_type                    
+None        450965 71.017887
+GroundBall   63890 10.061386
+FlyBall      50371  7.932416
+LineDrive    37801  5.952895
+Popup        29694  4.676206
+Bunt          2281  0.359211
+
+========================================================================
+C. BINARY TARGETS AND NUMERIC QUALITY
+========================================================================
+Se aceptan 0/1 y bool; cadenas numéricas se convierten explícitamente.
+Cadenas true/false (sin distinguir mayúsculas) se interpretan explícitamente como 1/0.
+Otros valores se reportan y excluyen de cálculos; NaN nunca se convierte en cero.
+RunsScored: fuera de entero [0,4] = 0; no se recortan.
+OutsOnPlay: fuera de entero [0,3] = 0; no se recortan.
+                           non_null  missing_pct  non_numeric  non_finite  non_binary  valid_n  positive_rate
+column                                                                                                       
+is_swing                     635002     0.000000            0           0           0   635002       0.469336
+is_whiff                     635002     0.000000            0           0           0   635002       0.113250
+is_contact                   635002     0.000000            0           0           0   635002       0.356794
+is_called_strike             635002     0.000000            0           0           0   635002       0.154031
+is_swinging_strike           635002     0.000000            0           0           0   635002       0.113250
+is_ball_in_play              635002     0.000000            0           0           0   635002       0.182595
+is_batted                    635002     0.000000            0           0           0   635002       0.355467
+is_hit                       635002     0.000000            0           0           0   635002       0.065669
+single                       635002     0.000000            0           0           0   635002       0.045006
+double                       635002     0.000000            0           0           0   635002       0.012283
+triple                       635002     0.000000            0           0           0   635002       0.001110
+home_run                     635002     0.000000            0           0           0   635002       0.007269
+base_on_balls                635002     0.000000            0           0           0   635002       0.024927
+strikeout                    635002     0.000000            0           0           0   635002       0.048264
+is_hit_by_pitch              635002     0.000000            0           0           0   635002       0.000000
+in_strike_zone               635002     0.000000            0           0           0   635002       0.351322
+outside_strike_zone          635002     0.000000            0           0           0   635002       0.648678
+swung_outside_strike_zone    635002     0.000000            0           0           0   635002       0.222069
+ExitSpeed                    182821    71.209382            0           0           0   182821            NaN
+Angle                        182820    71.209539            0           0           0   182820            NaN
+RunsScored                   635002     0.000000            0           0           0   635002            NaN
+OutsOnPlay                   635002     0.000000            0           0           0   635002            NaN
+
+========================================================================
+D. LOGICAL CONSISTENCY
+========================================================================
+is_whiff != is_swinging_strike: inconsistencias=0; comparables=635002; no evaluables=0
+whiff sin swing: inconsistencias=0; comparables=635002; no evaluables=0
+contact sin swing: inconsistencias=0; comparables=635002; no evaluables=0
+called strike con swing: inconsistencias=403; comparables=635002; no evaluables=0
+chase dentro de zona: inconsistencias=0; comparables=635002; no evaluables=0
+chase sin outside zone: inconsistencias=0; comparables=635002; no evaluables=0
+chase sin swing: inconsistencias=0; comparables=635002; no evaluables=0
+whiff y contact simultáneos: inconsistencias=450; comparables=635002; no evaluables=0
+
+========================================================================
+E. WHIFF — TWO DIFFERENT DENOMINATORS
+========================================================================
+P(whiff per pitch): 0.11325004 (11.3250%)
+Universo elegible=635002; evento válido/denominador=635002; eventos=71914; evento ausente/inválido=0
+P(whiff | swing): 0.24129867 (24.1299%)
+Universo elegible=298029; evento válido/denominador=298029; eventos=71914; evento ausente/inválido=0
+Pitches con swing desconocido/inválido: 0
+
+========================================================================
+F. CHASE — OUTSIDE ZONE ONLY
+========================================================================
+P(chase | pitch outside zone): 0.34234011 (34.2340%)
+Universo elegible=411912; evento válido/denominador=411912; eventos=141014; evento ausente/inválido=0
+Pitches con outside zone desconocido/inválido: 0
+
+========================================================================
+G. BATTED BALLS — HIT TYPE
+========================================================================
+Batted balls: 225722; is_batted desconocido/inválido: 0
+                n       pct
+hit_type                   
+GroundBall  63890 28.304729
+FlyBall     50371 22.315503
+None        41685 18.467407
+LineDrive   37801 16.746706
+Popup       29694 13.155120
+Bunt         2281  1.010535
+
+Angle / ExitSpeed por hit_type (n incluye filas sin medición):
+                n  exit_speed_count  exit_speed_mean  exit_speed_median  angle_count  angle_mean  angle_median
+group                                                                                                         
+GroundBall  63890             63890        80.974926          83.152935        63889  -13.283140     -7.272741
+NaN         41685                 0              NaN                NaN            0         NaN           NaN
+Popup       29694             29694        73.848121          73.683975        29694   62.255567     60.665903
+LineDrive   37801             37801        84.961950          86.738770        37801   17.507870     17.514734
+FlyBall     50371             50371        79.076560          78.104050        50371   36.476924     35.913404
+Bunt         2281              1065        34.943859          32.337820         1065  -19.421926    -19.915783
+
+========================================================================
+H. CONTACT DISTRIBUTIONS — BATTED BALLS
+========================================================================
+
+ExitSpeed
+count   182821.000000
+mean        79.850572
+std         14.755468
+min          1.140250
+1%          34.143390
+5%          55.837270
+10%         62.654200
+25%         70.671330
+50%         79.792020
+75%         91.177150
+90%         98.333730
+95%        101.516850
+99%        106.524088
+max        129.917770
+Missing/inválidos en batted balls: 42901
+
+Angle
+count   182820.000000
+mean        19.026803
+std         30.784115
+min        -89.573338
+1%         -65.025790
+5%         -38.256014
+10%        -21.292584
+25%          1.374789
+50%         20.552130
+75%         40.710246
+90%         57.877745
+95%         66.134409
+99%         77.982425
+max         89.542233
+Missing/inválidos en batted balls: 42902
+
+========================================================================
+I. CONTACT METRICS BY OUTCOME — BATTED BALLS
+========================================================================
+
+is_hit
+            n  exit_speed_count  exit_speed_mean  exit_speed_median  angle_count  angle_mean  angle_median
+group                                                                                                     
+0.0    184022            142618        77.276869          77.054305       142617   21.435028     25.843171
+1.0     41700             40203        88.980646          92.482830        40203   10.483813     12.832862
+
+home_run
+            n  exit_speed_count  exit_speed_mean  exit_speed_median  angle_count  angle_mean  angle_median
+group                                                                                                     
+0.0    221106            178230        79.343871          79.276000       178229   18.759264     19.727343
+1.0      4616              4591        99.521528          99.522250         4591   29.413016     28.891261
+
+OutsOnPlay
+            n  exit_speed_count  exit_speed_mean  exit_speed_median  angle_count  angle_mean  angle_median
+group                                                                                                     
+0.0    152151            115352        79.372408          77.664325       115352   23.332775     22.917825
+1.0     73319             67231        80.666307          83.365380        67230   11.728724     12.630084
+2.0       247               233        81.274126          82.937190          233   -6.798231     -5.008725
+3.0         5                 5        76.417240          75.933490            5   11.922831      7.903886
+
+========================================================================
+J. OUTS / PA STRUCTURE — ALL PITCHES
+========================================================================
+                 n       pct
+OutsOnPlay                  
+0.0         529481 83.382572
+1.0         105244 16.573806
+2.0            264  0.041575
+3.0             13  0.002047
+
+strikeout × OutsOnPlay (incluye ausentes; frecuencias de valores originales)
+OutsOnPlay     0.0    1.0  2.0  3.0
+strikeout                          
+0.0         529481  74596  264   13
+1.0              0  30648    0    0
+Columnas potencialmente relacionadas con PA (solo inventario, no definición terminal):
+game_anon_id, batter_anon_id, BatterSide, base_on_balls, OutsOnPlay, Inning, Outs, Balls, Strikes, PlateLocHeight, PlateLocSide, outside_strike_zone, swung_outside_strike_zone
+
+========================================================================
+K. RUN VALUE RAW MATERIAL — ALL PITCHES
+========================================================================
+                 n       pct
+RunsScored                  
+0.0         616724 97.121584
+1.0          13844  2.180151
+2.0           3462  0.545195
+3.0            808  0.127244
+4.0            164  0.025827
+
+play_result
+                        n       pct
+play_result                        
+BallCalled         210743 33.187769
+NeutralPlay        199209 31.371397
+Out                 66922 10.538864
+StrikeSwinging      47593  7.494937
+Strikeout           30648  4.826441
+Single              28579  4.500616
+Walk                15829  2.492748
+BallinDirt          10864  1.710861
+Double               7800  1.228343
+HomeRun              4616  0.726927
+FieldersChoice       3640  0.573227
+HitByPitch           2258  0.355589
+Sacrifice            1932  0.304251
+FoulBallFieldable    1917  0.301889
+Error                1747  0.275117
+Triple                705  0.111023
+StrikeCalled            0  0.000000
+InPlay                  0  0.000000
+
+========================================================================
+L. SEMANTIC CROSS-CHECKS — NO RECODING
+========================================================================
+                           n  is_swing_mean  is_whiff_mean  is_contact_mean  is_called_strike_mean  is_ball_in_play_mean  is_batted_mean
+PitchCall                                                                                                                               
+BallCalled            226061       0.002048       0.000000         0.002048               0.000000              0.000004        0.002048
+FoulBallNotFieldable  104081       1.000000       0.000000         1.000000               0.000000              0.000000        1.000000
+StrikeSwinging         71914       1.000000       1.000000         0.006257               0.000000              0.000014        0.006257
+StrikeCalled           97810       0.004120       0.000000         0.004120               1.000000              0.000000        0.004120
+InPlay                115946       1.000000       0.000000         1.000000               0.000000              1.000000        1.000000
+BallinDirt             11353       0.003964       0.000000         0.003964               0.000000              0.000000        0.003964
+FoulBallFieldable       1917       1.000000       0.000000         1.000000               0.000000              0.000000        1.000000
+HitByPitch              2280       0.100877       0.000000         0.100877               0.000000              0.000000        0.100877
+FoulBall                2799       1.000000       0.000000         1.000000               0.000000              0.000000        0.698821
+Undefined                841       0.274673       0.000000         0.274673               0.000000              0.000000        0.274673
+
+hit_type fuera de is_batted == 1 (incluye indicador desconocido):
+               n        pct
+hit_type                   
+None      409280 100.000000
+
+Comparaciones semánticas adicionales (no sustituyen etiquetas):
+is_whiff vs PitchCall in ['StrikeSwinging']: diferencias=0; comparables=635002; no evaluables=0
+is_called_strike vs PitchCall in ['StrikeCalled']: diferencias=0; comparables=635002; no evaluables=0
+is_hit_by_pitch vs PitchCall in ['HitByPitch']: diferencias=2280; comparables=635002; no evaluables=0
+is_hit_by_pitch vs play_result in ['HitByPitch']: diferencias=2258; comparables=635002; no evaluables=0
+is_hit vs play_result in ['Single', 'Double', 'Triple', 'HomeRun']: diferencias=0; comparables=635002; no evaluables=0
+strikeout vs KorBB in ['Strikeout']: diferencias=0; comparables=635002; no evaluables=0
+base_on_balls vs KorBB in ['Walk']: diferencias=0; comparables=635002; no evaluables=0
+is_batted=1 pero is_ball_in_play=0: 109774
+PitchCall=StrikeCalled y is_swing=1: 403
+PitchCall=StrikeCalled y is_contact=1: 403
+PitchCall=StrikeCalled y is_batted=1: 403
+PitchCall=StrikeSwinging y is_swing=1: 71914
+PitchCall=StrikeSwinging y is_contact=1: 450
+PitchCall=StrikeSwinging y is_batted=1: 450
+PitchCall=HitByPitch y is_swing=1: 230
+PitchCall=HitByPitch y is_contact=1: 230
+PitchCall=HitByPitch y is_batted=1: 230
+
+========================================================================
+M. CALLED STRIKE WITH SWING
+========================================================================
+Rows: 403
+
+PitchCall:
+                        n        pct
+PitchCall                           
+StrikeCalled          403 100.000000
+BallCalled              0   0.000000
+BallinDirt              0   0.000000
+BallIntentional         0   0.000000
+FoulBall                0   0.000000
+FoulBallFieldable       0   0.000000
+FoulBallNotFieldable    0   0.000000
+HitByPitch              0   0.000000
+InPlay                  0   0.000000
+StrikeSwinging          0   0.000000
+Undefined               0   0.000000
+AutomaticBall           0   0.000000
+AutomaticStrike         0   0.000000
+
+play_result:
+                     n       pct
+play_result                     
+NeutralPlay        392 97.270471
+Strikeout           11  2.729529
+BallCalled           0  0.000000
+Triple               0  0.000000
+HitByPitch           0  0.000000
+HomeRun              0  0.000000
+FoulBallFieldable    0  0.000000
+Walk                 0  0.000000
+StrikeSwinging       0  0.000000
+StrikeCalled         0  0.000000
+BallinDirt           0  0.000000
+Single               0  0.000000
+Sacrifice            0  0.000000
+Out                  0  0.000000
+FieldersChoice       0  0.000000
+Error                0  0.000000
+Double               0  0.000000
+InPlay               0  0.000000
+
+Flags (combinaciones originales, incluyendo NaNs):
+is_whiff  is_contact  is_swinging_strike  is_ball_in_play
+0.0       1.0         0.0                 0.0                403
+
+========================================================================
+N. WHIFF AND CONTACT SIMULTANEOUS
+========================================================================
+Rows: 450
+
+PitchCall:
+                        n        pct
+PitchCall                           
+StrikeSwinging        450 100.000000
+BallCalled              0   0.000000
+BallinDirt              0   0.000000
+BallIntentional         0   0.000000
+FoulBall                0   0.000000
+FoulBallFieldable       0   0.000000
+FoulBallNotFieldable    0   0.000000
+HitByPitch              0   0.000000
+InPlay                  0   0.000000
+StrikeCalled            0   0.000000
+Undefined               0   0.000000
+AutomaticBall           0   0.000000
+AutomaticStrike         0   0.000000
+
+play_result:
+                     n       pct
+play_result                     
+StrikeSwinging     414 92.000000
+Strikeout           35  7.777778
+Out                  1  0.222222
+BallCalled           0  0.000000
+Triple               0  0.000000
+HitByPitch           0  0.000000
+HomeRun              0  0.000000
+FoulBallFieldable    0  0.000000
+Walk                 0  0.000000
+StrikeCalled         0  0.000000
+BallinDirt           0  0.000000
+Single               0  0.000000
+Sacrifice            0  0.000000
+NeutralPlay          0  0.000000
+FieldersChoice       0  0.000000
+Error                0  0.000000
+Double               0  0.000000
+InPlay               0  0.000000
+
+hit_type:
+              n       pct
+hit_type                 
+GroundBall  149 33.111111
+FlyBall     137 30.444444
+LineDrive   101 22.444444
+Popup        62 13.777778
+None          1  0.222222
+
+Flags (combinaciones originales, incluyendo NaNs):
+is_swing  is_swinging_strike  is_ball_in_play  is_batted
+1.0       1.0                 0.0              1.0          449
+                              1.0              1.0            1
+
+========================================================================
+O. HIT BY PITCH AUDIT
+========================================================================
+PitchCall HitByPitch: 2280
+play_result HitByPitch: 2258
+PitchCall HBP but play_result not HBP: 22
+play_result HBP but PitchCall not HBP: 0
+PitchCall HBP with unknown play_result: 0
+play_result HBP with unknown PitchCall: 0
+HBP union rows: 2280
+
+Cross-tab (solo categorías observadas; NaNs explícitos):
+play_result   'HitByPitch'  'Walk'
+PitchCall                         
+'HitByPitch'          2258      22
+
+========================================================================
+P. GROUND BALL — BALLS IN PLAY
+========================================================================
+Eligible BIP rows: 115948
+BIP flag unknown/invalid: 0
+                n       pct
+hit_type                   
+GroundBall  49103 42.349157
+LineDrive   24597 21.213820
+FlyBall     23927 20.635975
+Popup        9491  8.185566
+None         6549  5.648222
+Bunt         2281  1.967261
+
+Bunts — describe (solo BIP):
+           is_hit  OutsOnPlay   ExitSpeed       Angle
+count 2281.000000 2281.000000 1065.000000 1065.000000
+mean     0.240246    0.717229   34.943859  -19.421926
+std      0.427326    0.452388   14.058334   35.425567
+min      0.000000    0.000000    5.298220  -87.486884
+25%      0.000000    0.000000   26.605560  -49.069456
+50%      0.000000    1.000000   32.337820  -19.915783
+75%      0.000000    1.000000   38.964150    7.595151
+max      1.000000    2.000000  107.141720   83.589806
+Universo V1 cerrado: BIP con hit_type conocido y no bunt; auditoría de cobertura en R.
+
+========================================================================
+Q. BIP WITH UNKNOWN HIT TYPE
+========================================================================
+Rows: 6549
+       PitchCall play_result      is_hit  OutsOnPlay  ExitSpeed    Angle
+count       6549        6549 6549.000000 6549.000000   0.000000 0.000000
+unique         2           9         NaN         NaN        NaN      NaN
+top       InPlay         Out         NaN         NaN        NaN      NaN
+freq        6548        4732         NaN         NaN        NaN      NaN
+mean         NaN         NaN    0.188731    0.787907        NaN      NaN
+std          NaN         NaN    0.391325    0.412911        NaN      NaN
+min          NaN         NaN    0.000000    0.000000        NaN      NaN
+25%          NaN         NaN    0.000000    1.000000        NaN      NaN
+50%          NaN         NaN    0.000000    1.000000        NaN      NaN
+75%          NaN         NaN    0.000000    1.000000        NaN      NaN
+max          NaN         NaN    1.000000    2.000000        NaN      NaN
+
+PitchCall:
+                         n       pct
+PitchCall                           
+InPlay                6548 99.984730
+StrikeSwinging           1  0.015270
+BallCalled               0  0.000000
+BallinDirt               0  0.000000
+BallIntentional          0  0.000000
+FoulBall                 0  0.000000
+FoulBallFieldable        0  0.000000
+FoulBallNotFieldable     0  0.000000
+HitByPitch               0  0.000000
+StrikeCalled             0  0.000000
+Undefined                0  0.000000
+AutomaticBall            0  0.000000
+AutomaticStrike          0  0.000000
+
+play_result:
+                      n       pct
+play_result                      
+Out                4732 72.255306
+Single             1095 16.720110
+FieldersChoice      351  5.359597
+Error               202  3.084440
+Double              108  1.649107
+Sacrifice            26  0.397007
+HomeRun              24  0.366468
+Triple                9  0.137426
+NeutralPlay           2  0.030539
+BallCalled            0  0.000000
+FoulBallFieldable     0  0.000000
+HitByPitch            0  0.000000
+StrikeCalled          0  0.000000
+Walk                  0  0.000000
+StrikeSwinging        0  0.000000
+Strikeout             0  0.000000
+BallinDirt            0  0.000000
+InPlay                0  0.000000
+
+========================================================================
+R. GROUNDBALL ELIGIBLE COHORT — CLOSED V1
+========================================================================
+Eligible GB rows: 107118
+Coverage over BIP: 0.92384517 (92.3845%)
+Excluded unknown hit_type: 6549
+Excluded Bunt: 2281
+                n       pct
+hit_type                   
+GroundBall  49103 45.840102
+LineDrive   24597 22.962527
+FlyBall     23927 22.337049
+Popup        9491  8.860322
+Unexpected eligible hit_type rows: 0
+Cohorte descriptiva: no se imputan hit_type ni se exportan nuevas etiquetas.
+
+========================================================================
+S. CONTACT — BIP, KNOWN HIT TYPE, NON-BUNT, MEASURED
+========================================================================
+Eligible contact rows: 107117
+Excluded missing/invalid measurements from GB cohort: 1
+
+ExitSpeed by hit_type
+                  count      mean       std       min       25%       50%       75%        max
+hit_type                                                                                      
+FlyBall    23927.000000 85.320007 12.160695 16.277320 78.407310 87.293300 94.051765 117.229410
+GroundBall 49102.000000 82.396045 15.823002  1.140250 72.401302 85.408285 94.551732 129.544210
+LineDrive  24597.000000 89.117914 12.225668 15.171870 82.435150 91.739010 98.002610 116.741230
+Popup       9491.000000 77.892460 10.960868 24.534940 71.214060 79.063360 85.734995 114.160160
+
+Angle by hit_type
+                  count       mean       std        min        25%       50%       75%       max
+hit_type                                                                                        
+FlyBall    23927.000000  35.003287  6.887165  25.000649  29.109127 33.872111 40.212564 49.996927
+GroundBall 49102.000000 -13.332303 20.593356 -89.573338 -22.795808 -7.433749  2.317039  9.999741
+LineDrive  24597.000000  17.398937  4.303663  10.000567  13.679276 17.392656 21.049809 24.998762
+Popup       9491.000000  62.660391  8.953859  50.002707  55.094466 61.281275 68.751516 89.542233
+
+ExitSpeed and Angle percentiles (marginal distributions on the same cohort):
+          ExitSpeed         Angle
+count 107117.000000 107117.000000
+mean      84.193667     11.254538
+std       14.269316     29.364161
+min        1.140250    -89.573338
+5%        57.747122    -42.823237
+10%       64.841844    -26.060847
+25%       75.652020     -5.443720
+50%       86.722800     12.619491
+75%       94.881870     29.583783
+90%      100.157996     47.647708
+95%      102.781718     59.668929
+max      129.544210     89.542233
+No se fijan thresholds; estos percentiles no constituyen definiciones de weak/hard contact.
+
+========================================================================
+T. PLATE APPEARANCE IDENTIFIERS AND ORDER
+========================================================================
+Columns containing PA / atbat / pitch / plate:
+PitchUID
+pitcher_anon_id
+PitcherThrows
+AutoPitchType
+PitchTrajectoryXc0
+PitchTrajectoryXc1
+PitchTrajectoryXc2
+PitchTrajectoryYc0
+PitchTrajectoryYc1
+PitchTrajectoryYc2
+PitchTrajectoryZc0
+PitchTrajectoryZc1
+PitchTrajectoryZc2
+PitchCall
+is_hit_by_pitch
+PlateLocHeight
+PlateLocSide
+Explicit PA/order/time candidates: ninguno
+           column     dtype  missing  unique
+0            year     int32        0       3
+1    game_anon_id    object        0    2127
+2  batter_anon_id    object     2020     864
+3          Inning   float64        0      14
+4      Top/Bottom  category        0       2
+5            Outs   float64        0       4
+6           Balls   float64        0       4
+7         Strikes   float64        0       3
+8           count    object        0      12
+9        PitchUID    object        0  635002
+Duplicate non-null PitchUID rows: 0
+PitchUID UUID versions:
+               n       pct
+PitchUID                  
+1         634677 99.948819
+4            325  0.051181
+Un UUID identifica un pitch; incluso UUID v1 no demuestra límites de PA ni secuencia deportiva completa.
+Rows missing game/batter/inning/half keys: 2020
+Game/batter/inning/half groups: 164810
+Groups with >1 recorded terminal candidate: 935
+Terminal candidates = BIP OR strikeout OR walk OR PitchCall HBP; no se adopta esa unión como target.
+No se infiere el último pitch a partir del orden de filas, count ni UUID sin validar secuencia y límites de PA.
+Out-within-PA no construido: identificar outcomes por pitch no equivale a identificar una PA completa.
+
+========================================================================
+U. FINAL V1 TARGET DEFINITIONS — CLOSED
+========================================================================
+05_target_definitions.py — CERRADO por decisión metodológica ratificada.
+Incluidos: whiff_per_pitch (directo), whiff_given_swing (derivable), called_strike (directo), chase (condicional), groundball (derivable).
+Whiff por pitch: fuente is_whiff, sobre todos los pitches con evento conocido.
+Whiff dado swing: is_whiff entre is_swing == 1; estimando distinto, denominadores en E.
+Chase: swung_outside_strike_zone entre outside_strike_zone == 1.
+Called strike: fuente primaria PitchCall == "StrikeCalled". No se borran los 403 casos contradictorios.
+is_called_strike coincide con esa fuente en este dataset: cambiar la fuente no elimina la contradicción con swing/contact.
+HBP: is_hit_by_pitch descartado como fuente. Si se requiere, usar PitchCall == "HitByPitch"; documentar los 22 play_result=Walk.
+No se corrigen los 450 whiff+contact ni los 403 called strike+contact sin metadata de origen.
+Groundball V1 CERRADO: hit_type == GroundBall entre BIP con hit_type conocido y no Bunt. Ausentes excluidos, nunca negativos.
+Weak/hard contact: FUERA DE V1. Sin flag directo ni threshold defendible sin una convención adicional; no se fijan umbrales.
+Out within PA: FUERA DE V1. No hay identificador/orden de PA suficientemente confiable para identificar el pitch terminal.
+xRunValue: formalmente fuera de V1; RunsScored observado no sustituye run value esperado.
+is_batted no equivale a BIP y contiene inconsistencias: cada target de contacto requiere universo explícito.
+hit_type y Angle presentan cortes observados alrededor de 10/25/50 grados; procedencia no confirmada, no usarlos como evidencia independiente.
+Siguiente paso pendiente: 06_arsenal_incremental_value.py — Null, Physical Stuff y Physical Stuff + Historical Arsenal sobre las mismas filas elegibles season-forward para is_whiff.
+No se entrenan modelos, no se exportan columnas target, no se modifican datos ni se usan pesos externos.

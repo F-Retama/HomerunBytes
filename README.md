@@ -28,6 +28,7 @@ python 01_eda.py
 python 02_feature_engineering.py
 python 03_stuff_baseline.py
 python 04_fold_safe_arsenal.py
+python 05_target_definitions.py
 ```
 
 | Archivo | Qué hace |
@@ -36,9 +37,12 @@ python 04_fold_safe_arsenal.py
 | `02_feature_engineering.py` | Construye las features exploratorias de arsenal y genera `stuff_model_features_v1.parquet`. |
 | `03_stuff_baseline.py` | Compara el baseline global, el baseline por tipo de lanzamiento y un modelo físico para `is_whiff`, con pitchers separados entre train y test. Incluye diagnósticos numéricos. |
 | `04_fold_safe_arsenal.py` | Construye y audita referencias de arsenal sin leakage, tanto en pitcher holdout como en ventanas históricas 2024 → 2025 y 2024–2025 → 2026. No entrena modelos. Genera `04_primary_fastball_changes.csv`. |
+| `05_target_definitions.py` | Audita categorías reales, targets, consistencia y distribuciones de contacto en el dataset original completo. Guarda `05_target_definitions_audit.txt`. No entrena modelos ni fija thresholds de contacto. |
 | `explorar_datos.py` | Inspección rápida del tamaño del dataset y del diccionario. Opcional; no forma parte de la secuencia principal. |
 
 **`02` debe ejecutarse antes de `03` y `04`**, porque ambos leen el parquet que genera. Los resultados principales se imprimen en la terminal. Volver a ejecutar `02` o `04` reemplaza sus respectivos archivos generados locales.
+
+`05` usa directamente `stuff_model_df.parquet`, sin los filtros V1 de `02`/`03`. Sus tasas describen todo el dataset y no son métricas de test del baseline. Al repetirlo se actualiza su reporte TXT. Puede ejecutarse desde cualquier carpeta; las rutas predeterminadas se resuelven junto al script.
 
 ## Datos y archivos generados
 
@@ -51,7 +55,9 @@ python 04_fold_safe_arsenal.py
 - Las features de temporada completa de `02` sirven para exploración. Las referencias de arsenal para validación deben construirse con la lógica de `04`, usando únicamente datos permitidos de entrenamiento o historial previo.
 - Para pitchers completamente nuevos, las features de arsenal quedan ausentes por diseño. No se rellenan con información de test. Con historial previo se utiliza la validación temporal independiente.
 
-`04` está cerrado. El siguiente paso previsto es `05_arsenal_incremental_value.py` (todavía no incluido): evaluar si el arsenal histórico aporta valor adicional sobre Physical Stuff, comparando exactamente las mismas filas elegibles. Esa mejora aún no se ha demostrado.
+`04` y `05_target_definitions.py` están cerrados. Targets V1: whiff por pitch, whiff dado swing, called strike desde PitchCall, chase fuera de zona y groundball en BIP con hit_type conocido y sin bunts. Weak/hard contact, out-within-PA y xRunValue quedan fuera de V1; no usar el flag is_hit_by_pitch. Las contradicciones se documentan sin corregir etiquetas.
+
+El siguiente paso pendiente es `06_arsenal_incremental_value.py` (aún no creado): comparar Null, Physical Stuff y Physical Stuff + Historical Arsenal para is_whiff sobre exactamente las mismas filas elegibles season-forward. Todavía no se ha demostrado valor incremental del arsenal.
 
 ## Documentación del proyecto
 
