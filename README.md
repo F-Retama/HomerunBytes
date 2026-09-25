@@ -29,6 +29,9 @@ python 02_feature_engineering.py
 python 03_stuff_baseline.py
 python 04_fold_safe_arsenal.py
 python 05_target_definitions.py
+python 06_arsenal_incremental_value.py
+python 07_boosting_models.py
+python 08_park_holdout.py
 ```
 
 | Archivo | Qué hace |
@@ -38,6 +41,9 @@ python 05_target_definitions.py
 | `03_stuff_baseline.py` | Compara el baseline global, el baseline por tipo de lanzamiento y un modelo físico para `is_whiff`, con pitchers separados entre train y test. Incluye diagnósticos numéricos. |
 | `04_fold_safe_arsenal.py` | Construye y audita referencias de arsenal sin leakage, tanto en pitcher holdout como en ventanas históricas 2024 → 2025 y 2024–2025 → 2026. No entrena modelos. Genera `04_primary_fastball_changes.csv`. |
 | `05_target_definitions.py` | Audita categorías reales, targets, consistencia y distribuciones de contacto en el dataset original completo. Guarda `05_target_definitions_audit.txt`. No entrena modelos ni fija thresholds de contacto. |
+| `06_arsenal_incremental_value.py` | Compara Null, Physical Stuff y Physical Stuff + Historical Arsenal para `is_whiff` sobre las mismas filas elegibles de cada ventana season-forward (2024→2025, 2024–2025→2026), reutilizando las funciones de `04`. Genera `06_arsenal_incremental_results.csv`. |
+| `07_boosting_models.py` | Entrena boosting (`HistGradientBoostingClassifier`; LightGBM/XGBoost no cargan en este entorno por falta de `libomp`, ver nota abajo) para 5 targets V1 con el mismo pitcher holdout de `03`/`04`: `whiff_per_pitch`, `whiff_given_swing`, `groundball` (familia Stuff+, solo físicas) y `called_strike`, `chase` (familia Location+, ubicación+count+BatterSide). No incluye arsenal ni altitud. Genera `07_boosting_results.csv`. |
+| `08_park_holdout.py` | Entrena en No Altitude + Medium Altitude y evalúa en Extreme Altitude, reutilizando los targets y `build_model()` de `07`. `altitude_category` **no** se usa como feature (decisión documentada en la guía, sección 25.1). Genera `08_park_holdout_results.csv` y compara contra `07_boosting_results.csv`. |
 | `explorar_datos.py` | Inspección rápida del tamaño del dataset y del diccionario. Opcional; no forma parte de la secuencia principal. |
 
 **`02` debe ejecutarse antes de `03` y `04`**, porque ambos leen el parquet que genera. Los resultados principales se imprimen en la terminal. Volver a ejecutar `02` o `04` reemplaza sus respectivos archivos generados locales.
@@ -57,7 +63,11 @@ python 05_target_definitions.py
 
 `04` y `05_target_definitions.py` están cerrados. Targets V1: whiff por pitch, whiff dado swing, called strike desde PitchCall, chase fuera de zona y groundball en BIP con hit_type conocido y sin bunts. Weak/hard contact, out-within-PA y xRunValue quedan fuera de V1; no usar el flag is_hit_by_pitch. Las contradicciones se documentan sin corregir etiquetas.
 
-El siguiente paso pendiente es `06_arsenal_incremental_value.py` (aún no creado): comparar Null, Physical Stuff y Physical Stuff + Historical Arsenal para is_whiff sobre exactamente las mismas filas elegibles season-forward. Todavía no se ha demostrado valor incremental del arsenal.
+`06_arsenal_incremental_value.py` está cerrado (24/09/2026): compara Null, Physical Stuff y Physical Stuff + Historical Arsenal para is_whiff sobre exactamente las mismas filas elegibles season-forward, reutilizando `04_fold_safe_arsenal.py` sin reimplementar su lógica de leakage. El arsenal histórico aporta valor incremental positivo y consistente (AUC +0.0027 en 2024→2025 y +0.0032 en 2024-2025→2026, con mejora también en Log Loss y Brier). Detalle en la guía, sección 23, y en `06_arsenal_incremental_results.csv`.
+
+`07_boosting_models.py` está cerrado (24/09/2026, V1 sin arsenal ni altitud): boosting con el mismo pitcher holdout mejora fuertemente sobre el baseline logístico de `03` (whiff_per_pitch AUC 0.6136 → 0.7268) y produce el primer Location+ funcional del proyecto (called_strike AUC 0.8790, chase AUC 0.8419). Nota de entorno: LightGBM y XGBoost no cargan aquí por falta de `libomp` (el host no puede compilarlo); se usa `sklearn.ensemble.HistGradientBoostingClassifier` como sustituto directo. Detalle en la guía, sección 24, y en `07_boosting_results.csv`.
+
+`08_park_holdout.py` está cerrado (24/09/2026): el AUC bajo park holdout (train en No Altitude + Medium Altitude, test en Extreme Altitude, sin `altitude_category` como feature) es prácticamente idéntico al pitcher holdout de `07` en los 5 targets (deltas entre -0.0083 y +0.0003) — evidencia real de robustez ambiental. Detalle e interpretación física de por qué generaliza tan bien en la guía, sección 25.
 
 ## Documentación del proyecto
 
