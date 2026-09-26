@@ -28,6 +28,12 @@ Transformacion de entorno (decisiones de diseno)
     tipo: no captura efectos proporcionales por pitch (p.ej. mas spin, mas
     perdida). No se hace shrinkage entre tipos: diluiria diferencias reales; la
     incertidumbre la lleva el bootstrap.
+  - HorzBreak, HorzApprAngle y RelSide tienen signo absoluto (zurdos ~ -diestros).
+    La transformacion se estima y se aplica en convencion de DIESTRO: se reflejan
+    esas variables en zurdos antes de agregar y el desplazamiento se aplica con el
+    signo de lateralidad de cada pitch (y de la recta en hb_diff_vs_fb). Pitches
+    con lateralidad no Right/Left se excluyen. (Una version previa mezclaba signos;
+    corregido el 25/09/2026.)
   - Cohorte principal: pitches observados en No Altitude de la temporada
     evaluada; la copia Extreme = X + delta. Chequeo inverso: pitches observados
     en Extreme, transformados hacia No con -delta.
@@ -55,6 +61,11 @@ ALL_VARS = SHIFT_VARS + PLACEBO_VARS
 WINDOW_HISTORY = {"2024 -> 2025": [2024], "2024-2025 -> 2026": [2024, 2025]}
 PRIMARY = "2024-2025 -> 2026"
 MIN_CELL = 20
+HORZ_VARS = ["HorzBreak", "HorzApprAngle", "RelSide"]
+
+
+def handed_sign(series):
+    return series.astype(str).map({"Right": 1.0, "Left": -1.0})
 MIN_PITCHER_PITCHES = 100
 MIN_RELEVANT_POINTS = 1.0
 MIN_BIN_PITCHERS = 30
@@ -69,6 +80,10 @@ def _load(name, filename):
 
 def build_cells(df):
     d = df[df["altitude_category"].astype(str).isin(["No Altitude", "Extreme Altitude"])].copy()
+    sign = handed_sign(d["PitcherThrows"])
+    d = d[sign.notna()].copy()
+    for col in HORZ_VARS:
+        d[col] = d[col] * sign[sign.notna()]
     d["AutoPitchType"] = d["AutoPitchType"].astype(str)
     d["altitude_category"] = d["altitude_category"].astype(str)
     g = d.groupby(["pitcher_anon_id", "AutoPitchType", "year", "altitude_category"])
@@ -100,12 +115,15 @@ class Cohort:
         self.type_idx = pd.Index(types).get_indexer(self.frame["AutoPitchType"].astype(str))
         self.fb_idx = pd.Index(types).get_indexer(self.frame["primary_fastball_type"].astype(str))
         self.pitch_idx = pd.Index(pitchers).get_indexer(self.frame["pitcher_anon_id"])
+        self.sign = handed_sign(self.frame["PitcherThrows"]).to_numpy()
 
 
 def shifted_frame(coh, D, sign):
     d = D[:, :4] * sign
-    own, fb = d[coh.type_idx], d[coh.fb_idx]
-    valid = ~(np.isnan(own).any(axis=1) | np.isnan(fb).any(axis=1))
+    own, fb = d[coh.type_idx].copy(), d[coh.fb_idx].copy()
+    for arr in (own, fb):
+        arr[:, [1, 3]] *= coh.sign[:, None]
+    valid = ~(np.isnan(own).any(axis=1) | np.isnan(fb).any(axis=1) | np.isnan(coh.sign))
     own0, fb0 = np.nan_to_num(own), np.nan_to_num(fb)
     f = coh.frame.copy()
     for j, col in enumerate(SHIFT_VARS):
@@ -299,7 +317,7 @@ def main():
         raise ValueError("El bundle es anterior a este script: volver a correr 09_pitching_plus.py.")
     raw = pd.read_parquet(BASE_DIR / "stuff_model_features_v1.parquet",
                           columns=["pitcher_anon_id", "AutoPitchType", "year", "altitude_category",
-                                   "is_whiff"] + ALL_VARS)
+                                   "is_whiff", "PitcherThrows"] + ALL_VARS)
     raw = raw.dropna(subset=["is_whiff", "pitcher_anon_id"])
 
     reps_all = {}

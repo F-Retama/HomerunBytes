@@ -144,7 +144,7 @@ Aproximadamente:
 - velocidad: casi igual;
 - spin: casi igual;
 - IVB: **-3.83 pulgadas**;
-- movimiento horizontal: **-1.94 pulgadas**;
+- movimiento horizontal: **-1.94 pulgadas**; *(nota 25/09/2026: este delta mezcló lateralidad; con las variables horizontales reflejadas a diestro el cambio es ≈ −2.8 pulgadas, ver guía sección 30)*
 - whiff: también disminuye.
 
 La interpretación sencilla es:
