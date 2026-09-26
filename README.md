@@ -38,6 +38,7 @@ python 11_altitude_total_effect.py
 python 12_weight_sensitivity.py
 python 13_count_value_weights.py
 python 14_v1_v2_altitude_matrix.py
+python 15_profile_and_recommendations.py
 ```
 
 | Archivo | Qué hace |
@@ -56,6 +57,7 @@ python 14_v1_v2_altitude_matrix.py
 | `12_weight_sensitivity.py` | V2 paso 1: curva del delta total de altitud contra el peso relativo de groundball y punto de quiebre por pitch type (IC95% bootstrap por pitcher), sin tocar V1. Usa `11_altitude_total_reps.pkl` (correr `11` primero). Genera `12_gb_weight_*.csv`. |
 | `13_count_value_weights.py` | V2 pasos 2-5: valor por conteo (cadena de Markov de 12 estados; pagos terminales de The Book/FanGraphs 2006, excepción documentada en la guía 29.1) y pesos no negativos del compuesto, con estabilidad entre ventanas y RMSE fuera de muestra contra el baseline nulo. Genera `13_*.csv` y `13_v2_bundle.pkl`. |
 | `14_v1_v2_altitude_matrix.py` | V2 paso 6: matriz V1 vs V2 del delta total por pitch type y niveles de evidencia (Robusto / Condicional / Incierto). Genera `14_v1_v2_matrix_by_window.csv` y `14_evidence_levels.csv`. |
+| `15_profile_and_recommendations.py` | Perfil físico/arsenal por pitch type en Extreme (zonas P25-P75 del quintil superior de Stuff+ V1, lift con IC95% por pitcher; aprendido con 2025 y validado en 2026 contra valor realizado por pitch), sensibilidad V2, recomendaciones por nivel de evidencia y `pitcher_fit_scores`. **Ningún perfil valida contra valor realizado**: es exploratorio. Genera `15_pitch_type_profiles.csv`, `15_profile_validation.csv`, `15_altitude_recommendations.csv`, `15_pitcher_fit_scores.csv`. |
 | `explorar_datos.py` | Inspección rápida del tamaño del dataset y del diccionario. Opcional; no forma parte de la secuencia principal. |
 
 **`02` debe ejecutarse antes de `03` y `04`**, porque ambos leen el parquet que genera. Los resultados principales se imprimen en la terminal. Volver a ejecutar `02` o `04` reemplaza sus respectivos archivos generados locales.
@@ -92,6 +94,8 @@ Consulta la versión más reciente disponible de cada documento para el detalle.
 
 `10_altitude_counterfactual.py` (24/09/2026, V1 efecto directo): el delta directo es ≈0 y sin signo estable entre ventanas; aún no hay un ΔStuff+ por pitch shape reportable. Falta el delta total (movimiento por ambiente) y bootstrap. Detalle en la guía, sección 27.
 
-`11_altitude_total_effect.py` (24/09/2026): efectos por tipo < 1 punto Stuff+; el signo en rectas depende de los pesos iguales (whiff cae, groundball sube); Curveball y Slider pierden de forma pequeña y robusta. Guía, sección 28.
+`11_altitude_total_effect.py` (24/09/2026, **corregido el 25/09/2026**: la transformación ahora respeta la lateralidad, ya que HorzBreak/HorzApprAngle/RelSide tienen signo absoluto; ver guía, sección 30). Vigente: salvo Four-Seam en V1 (+0.30, por groundball) todos los tipos con muestra suficiente pierden valor; Curveball (−1.16 en V1) y Slider (−0.55) son robustos; Cutter y Splitter no permiten concluir.
 
-`12`-`14` (24/09/2026, V2 como sensibilidad): con pesos ligados a valor de carrera, Four-Seam, Sinker y Changeup pasan de positivo (V1) a negativo; Curveball y Slider pierden con cualquier esquema (< 1 punto); Cutter y Splitter no permiten concluir. La estabilidad estricta de los pesos no se cumple, así que V1 permanece como baseline. La regla de pesos externos se enmendó solo para eventos terminales. Guía, sección 29.
+`12`-`14` (V2 como sensibilidad; recalculados el 25/09/2026 tras la corrección de lateralidad, guía secciones 29-30): con pesos ligados a valor de carrera, Four-Seam pasa de +0.30 (V1) a −1.43 (V2); Sinker ≈ 0 en V1 y −0.64 en V2; Changeup, Slider y Curveball pierden en ambos lentes. La estabilidad estricta de los pesos no se cumple, así que V1 permanece como escala oficial. La regla de pesos externos se enmendó solo para eventos terminales.
+
+`15` (25/09/2026): V1 es la escala oficial y V2 una sensibilidad; el perfil por pitch type es casi todo compartido con nivel del mar y no valida contra valor realizado (sí predice whiff observado en Four-Seam, Slider, Changeup y Cutter). Guía, sección 31.
