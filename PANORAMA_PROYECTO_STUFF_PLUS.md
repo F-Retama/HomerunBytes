@@ -2,6 +2,8 @@
 
 > Una explicación sencilla de qué estamos construyendo, qué hemos hecho hasta ahora y qué sigue.
 
+> **Nota 25/09/2026:** este panorama describe el proyecto hasta el paso 05/06 y está desactualizado. Estado vigente en el README (sección "Corrección post-auditoría") y en la guía, sección 32: el Stuff+ físico ahora excluye los ángulos de release/aproximación porque reconstruían la ubicación, y Stuff+, Location+ y Pitching+ se reportan por separado (`16_three_scores.py`).
+
 ---
 
 ## 1. ¿Qué estamos tratando de construir?

@@ -1,0 +1,36 @@
+{
+  "congelado": "2026-09-26",
+  "ventana_modelo_dashboard": "2024-2025 -> 2026",
+  "escala": "Stuff+ = 100 + 10 z (referencia: historial 2024-2025)",
+  "factores_movimiento_vs_No_Altitude": {
+    "Extreme Altitude": {
+      "InducedVertBreak": 0.7688160620019635,
+      "HorzBreak": 0.7108515585805156
+    },
+    "Medium Altitude": {
+      "InducedVertBreak": 0.8302672445011524,
+      "HorzBreak": 0.7911560593778361
+    }
+  },
+  "entorno_proxy_harp_helu": "Extreme Altitude",
+  "simulador": "22_profile_recommendations_export.simulate_pitch",
+  "archivos": {
+    "18_three_scores_bundle.pkl": "f531abc588c6901d2a00304460c38a13b1ac24bba1d8a45cacac8e1970901385",
+    "18_three_scores.csv": "2a7723b940aed17091641f3007c09f9bbd97e5cd71519c1c532005bd27ceea92",
+    "18_weights.csv": "b9f6da9503716d16651278eef216ab64a29a9742520299aa5a26da9cdb5708c1",
+    "20_transform_params.csv": "2dde9fc3c7cd2fe6001e6221f7ad64a9162a7d7987c8bed7c3d264ed339df072",
+    "20_altitude_gradient.csv": "204fbee0082106a882263954139abab9e0ad0ffc09745cc71c1040fbab3d149b",
+    "21_delta_by_pitch_type.csv": "218342324bf6a44a611c0216853e3c0f9fdb074203f21ae11576b7458b8a91b0",
+    "21_delta_by_shape_bin.csv": "4ab09e97f21ea68639e06f427b53866b5d5064fe47ba10bf101b194d6f2f6871",
+    "21_evidence_levels.csv": "8995ca3a5af3a7b09c0bf8b20e124fa9c5357ac585c39116e10a314bcea2b415",
+    "21_hypotheses.csv": "65e23c8f01fa5a1ba14aff9c6b479db36539cc1a866b85ece9e0ec02b4ccf80a",
+    "21_transform_r.json": "e11a3d666e0914e3fe8b6733f4537e08367cb08d71f2acb4baddd28e84d917c0",
+    "22_pitch_type_profiles.csv": "d83d47c0b2fd647230551271986cf0a23798338adff6680e2ff78a5b40e32c6d",
+    "22_recommendations.csv": "36819fe145a560fbd43a249f93e14bd8544d47ebfda2a22e0b17279acd8eb6d0",
+    "22_pitcher_projection.csv": "86b31d237cf6012fc7dd4ebcf5483ad862e6ce23477a76cbd618108c77bca83f",
+    "22_pitcher_arsenal_projection.csv": "6657f951057461dcf76fe37d437830da528dc812fa9b725606ddae74b8fcfb52",
+    "22_pitch_projection.parquet": "b320aca23361666c69f805f98a1e71d472ea9ce8916cfb7da11fa4b42935b2f0",
+    "17_contact_by_altitude.csv": "286f49c6662012d1f1a8d9c625b13542e30b72cb22c42c0c5f336395ffed464f",
+    "19_exit_table.csv": "6432baefdd31e2d6b457dda64230421260fb92e72981fc729dd14572ad63aa23"
+  }
+}
