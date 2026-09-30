@@ -1,0 +1,11 @@
+{
+  "forma_elegida": "mult_global_var",
+  "tolerancia": 0.02,
+  "rmse_promedio": {
+    "aditiva_tipo": 1.52528,
+    "mult_global_magnus": 1.19146,
+    "mult_global_var": 1.15506,
+    "mult_tipo": 1.14999,
+    "sin_cambio": 3.36835
+  }
+}
