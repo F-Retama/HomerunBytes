@@ -46,6 +46,7 @@ python 19_validation.py
 python 20_altitude_physics.py
 python 21_altitude_stuff_delta.py
 python 22_profile_recommendations_export.py
+python 23_dashboard_data.py
 ```
 
 | Archivo | Qué hace |
@@ -72,6 +73,7 @@ python 22_profile_recommendations_export.py
 | `20_altitude_physics.py` | **Bloque D (D1–D2).** Compara transformaciones del movimiento por altitud (aditiva contra multiplicativas) prediciendo la temporada futura, y mide el gradiente No → Medium → Extreme. Elegida: multiplicativa global (IVB × 0.77, HB × 0.71 en Extreme). Genera `20_*.csv` y `20_transform_choice.json`. Guía 36. |
 | `21_altitude_stuff_delta.py` | **Bloque D (D3–D4).** ΔStuff+ de altitud con el Stuff+ limpio (bootstrap por pitcher, chequeo inverso, sensibilidad a la forma y contraste observado del mismo pitcher), niveles de evidencia y tabla H1–H4. Genera `21_*.csv`, `21_delta_rows.parquet` y `21_transform_r.json`. Guía 36. |
 | `22_profile_recommendations_export.py` | **Bloque D (D5–D7).** Perfil físico ideal en altitud desde el Stuff+ limpio (validado contra whiff/chase reales), recomendaciones por tipo, proyección de cada pitcher a nivel del mar contra Harp Helú, `simulate_pitch()` para el dashboard y manifiesto congelado `22_dashboard_manifest.json`. Guía 36. |
+| `23_dashboard_data.py` | **Dashboard: capa de datos.** Convierte los outputs congelados (17–22) en las tablas de `dashboard/data/` (pitchers, arsenal, fingerprint, inbox, targets, tendencias, equipos reconstruidos, historial). Aquí viven todas las reglas de producto (Fit, semáforo, alertas, confianza, targets). Guía 37. |
 | `explorar_datos.py` | Inspección rápida del tamaño del dataset y del diccionario. Opcional; no forma parte de la secuencia principal. |
 
 **`02` debe ejecutarse antes de `03` y `04`**, porque ambos leen el parquet que genera. Los resultados principales se imprimen en la terminal. Volver a ejecutar `02` o `04` reemplaza sus respectivos archivos generados locales.
@@ -156,3 +158,17 @@ Los componentes de contacto reciben peso ≈ 0, así que H3 queda cuantificada d
 - **Perfil ideal:** sale solo del Stuff+ limpio y se valida contra whiff y chase reales en Extreme. Reemplaza al perfil de `15`.
 
 Los outputs quedaron congelados en `22_dashboard_manifest.json`, con `simulate_pitch()` verificado para el simulador. Detalle en la guía, sección 36.
+
+## Dashboard — Pitching Decision System (fase 1, 30/09/2026)
+
+Diseño en `Design_Thinking_Dashboard_Diablos_Rojos.md` y en los wireframes; el análisis de lo que los modelos sostienen está en `Dashboard_Analisis_Factibilidad.md`. Para ejecutarlo, desde la raíz del repo y después de correr la secuencia 17–22:
+
+```bash
+python -m pip install streamlit plotly
+python 23_dashboard_data.py
+streamlit run dashboard/app.py
+```
+
+Pantallas listas: **Roster** (inbox, mapa Stuff+ × adaptación, tabla con tendencia y comparador), **Player Overview** (recomendación, arsenal, fingerprint de movimiento a nivel del mar vs. Harp Helú, adaptación, Why? y development targets) y **Simulator** (el mismo pitch a nivel del mar, en Medium y en Harp Helú; what-if de física; heatmap de Location+ por count y lado; experimentos guardados) y **Scouting** (perfil ideal por tipo, explorador de la liga con señales Stuff+ contra resultados, evaluación de prospectos con arsenal completo, comparador y shortlist) y **Game** (lectura táctica por count y lado del bateador: calidad esperada por pitch y heatmaps de Pitching+ y del costo del contacto, a nivel del mar vs. Harp Helú). El motor (`dashboard/lib/engine.py`) reproduce exactamente los scores oficiales; se verifica con `python dashboard/lib/engine.py`. Las cinco pantallas del diseño están integradas.
+
+El dataset es anónimo: el roster se elige entre equipos reconstruidos por co-aparición (4–5 son locales en Extreme Altitude) o como lista personalizada, que se guarda en `dashboard/state/`. Guía, sección 37.
