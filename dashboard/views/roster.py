@@ -107,30 +107,31 @@ with left:
 # ---------------- Harp Helú Roster Map ----------------
 with right:
     st.markdown('<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
-                '<span class="dr-h2">Harp Helú Roster Map</span><span class="dr-note">Stuff+ × adaptación</span></div>', unsafe_allow_html=True)
+                '<span class="dr-h2">Harp Helú Roster Map</span><span class="dr-note">Stuff+ × adaptación vs. lo esperado</span></div>', unsafe_allow_html=True)
     M = V[V.fit != "Sin muestra"]
     fig = go.Figure()
-    for y0, y1, lab in [(75, 100, "Strong Fit"), (50, 75, "Moderate Fit"), (25, 50, "Low Fit"), (0, 25, "Poor Fit")]:
+    for y0, y1, lab in [(75, 100, "Pierde menos<br>de lo esperado"), (50, 75, ""), (25, 50, ""), (0, 25, "Pierde más<br>de lo esperado")]:
         fig.add_hrect(y0=y0, y1=y1, fillcolor="rgba(255,255,255,0.025)" if lab in ("Strong Fit", "Low Fit") else "rgba(0,0,0,0)", line_width=0)
         fig.add_annotation(x=0, xref="paper", y=(y0 + y1) / 2, text=f"<b>{lab}</b>", showarrow=False, xanchor="right", xshift=-8,
                            font=dict(size=11, color="#c6c8cd"))
     fig.add_vline(x=100, line=dict(color="rgba(255,255,255,0.18)", dash="dot"))
     for al, (c, lab) in ui.ALERT.items():
         m = M[M.alert == al]
-        fig.add_trace(go.Scatter(x=m.stuff_plus, y=100 * m.fit_pct, mode="markers+text", name=lab,
+        fig.add_trace(go.Scatter(x=m.stuff_plus, y=100 * m.exceso_pct, mode="markers+text", name=lab,
                                  text=[ui.pid_label(x).replace("Pitcher ", "") for x in m.pitcher_anon_id], textposition="middle right",
                                  textfont=dict(size=10, color="#c6c8cd"),
                                  marker=dict(color=c, size=10 + np.sqrt(m.n) / 4, line=dict(color="#15161a", width=2)),
-                                 customdata=np.stack([m.pitcher_anon_id, m.delta, m.n], axis=1) if len(m) else None,
-                                 hovertemplate="%{customdata[0]}<br>Stuff+ %{x:.1f}<br>Δ altitud %{customdata[1]:+.1f}<br>n %{customdata[2]}<extra></extra>"))
+                                 customdata=np.stack([m.pitcher_anon_id, m.delta, m.n, m.stuff_harp], axis=1) if len(m) else None,
+                                 hovertemplate="%{customdata[0]}<br>Stuff+ %{x:.1f} · en Harp Helú %{customdata[3]:.1f}<br>Δ altitud %{customdata[1]:+.1f}<br>n %{customdata[2]}<extra></extra>"))
     fig.update_layout(height=430, margin=dict(l=110, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
                       font=dict(family="IBM Plex Sans", color=ui.DIM), legend=dict(orientation="h", y=1.08, x=0, font=dict(size=11)),
                       xaxis=dict(title="Stuff+ →", gridcolor="rgba(255,255,255,0.05)", zeroline=False,
                                  range=[min(M.stuff_plus.min(), 95) - 1.5, max(M.stuff_plus.max(), 105) + 3] if len(M) else None),
                       yaxis=dict(title=None, range=[0, 100], showticklabels=False, gridcolor="rgba(0,0,0,0)"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    st.markdown('<div class="dr-note">Eje vertical = percentil de resiliencia del arsenal a la altitud (Δ Stuff+ Harp Helú − nivel del mar) '
-                'entre pitchers de la liga con ≥ 100 pitches. Arriba = pierde menos.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dr-note">Eje vertical = percentil de cuánto pierde el arsenal en altitud comparado con lo esperado para su nivel de '
+                'Stuff+ y sus tipos de pitch (los mejores pitchers pierden más puntos en términos absolutos; aquí eso se descuenta). '
+                'Arriba = pierde menos de lo esperado.</div>', unsafe_allow_html=True)
 
 # ---------------- Tabla del roster ----------------
 st.write("")
@@ -146,14 +147,16 @@ for _, r in V.iterrows():
         f'<tr><td><a target="_self" href="player?pid={r.pitcher_anon_id}&season={year}"><b>{ui.pid_label(r.pitcher_anon_id)}</b></a>'
         f'<div class="dr-note">{r.role} · {r.hand} · n {int(r.n):,}</div></td>'
         f'<td class="dr-mono"><b>{r.stuff_plus:.0f}</b></td><td class="dr-mono">{r.location_plus:.0f}</td><td class="dr-mono">{r.pitching_plus:.0f}</td>'
-        f'<td>{ui.fit_pill(r.fit)}<div style="margin-top:4px">{ui.conf_bars(r.confidence)}</div></td>'
+        f'<td>{ui.fit_pill(r.fit)} <span class="dr-mono dr-note">{r.stuff_mar:.0f}→{r.stuff_harp:.0f}</span><div style="margin-top:4px">{ui.conf_bars(r.confidence)}</div></td>'
         f'<td>{ui.delta_fmt(r.delta)} <span class="dr-note">Stuff+</span>{obs}</td>'
         f'<td><span style="color:{c};font-weight:600">● {lab}</span></td><td>{ui.sparkline(tr)}</td>'
         f'<td style="text-align:right"><a class="dr-btn-ghost" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}">Player →</a></td></tr>')
 st.markdown(
     f'<div class="dr-card" style="padding:0"><div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px">'
     f'<div><span class="dr-h2">Roster</span> <span class="dr-note">{len(V)} pitchers · {ui.esc(source)}</span></div>'
-    f'<span class="dr-note">Δ altitud = Stuff+ proyectado en Harp Helú − nivel del mar (mismo pitch). obs. = diferencia real Extreme − No Altitude del mismo pitcher.</span></div>'
+    f'<span class="dr-note">Stuff+ = temporada tal como se lanzó (parques reales). Harp Helú Fit = Stuff+ proyectado en Harp Helú frente a la liga '
+    f'(números = mismo arsenal a nivel del mar → en Harp Helú). Δ altitud = efecto del aire '
+    f'sobre el mismo pitch (variante física). obs. = diferencia real Extreme − No Altitude del mismo pitcher.</span></div>'
     f'<table class="dr-tbl"><tr><th>Pitcher</th><th>Stuff+</th><th>Location+</th><th>Pitching+</th><th>Harp Helú Fit</th><th>Δ altitud</th>'
     f'<th>Alert</th><th>Trend · 6 sem</th><th></th></tr>{"".join(rows) or "<tr><td colspan=9 class=dr-note>Ningún pitcher coincide con los filtros.</td></tr>"}</table></div>',
     unsafe_allow_html=True)

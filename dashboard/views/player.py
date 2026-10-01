@@ -91,8 +91,9 @@ for col, lab, v in [(k[0], "Stuff+", p.stuff_plus), (k[1], "Location+", p.locati
     col.markdown(f'<div class="dr-card" style="padding:12px 16px"><span class="dr-label">{lab}</span> <span class="dr-kpi-v" style="font-size:28px;margin-left:8px">{v:.0f}</span></div>',
                  unsafe_allow_html=True)
 k[3].markdown(f'<div class="dr-card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><span class="dr-label">Harp Helú Fit</span>{ui.fit_pill(p.fit)}'
-              f'{ui.conf_bars(p.confidence)}<span class="dr-note">Δ {p.delta:+.1f}'
-              + ("" if p.delta_observado != p.delta_observado else f' · obs. {p.delta_observado:+.1f}') + '</span></div>', unsafe_allow_html=True)
+              f'<span class="dr-mono">{p.stuff_mar:.0f}→{p.stuff_harp:.0f}</span>{ui.conf_bars(p.confidence)}<span class="dr-note">Δ altitud {p.delta:+.1f}'
+              + ("" if p.delta_observado != p.delta_observado else f' · obs. {p.delta_observado:+.1f}')
+              + f' · {"menos" if p.exceso >= 0 else "más"} de lo esperado ({p.exceso:+.1f})</span></div>', unsafe_allow_html=True)
 
 # ---------------- arsenal + fingerprint ----------------
 st.write("")
@@ -108,8 +109,9 @@ c[0].markdown(
     f'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><span class="dr-h2">Arsenal Overview</span>'
     f'<span class="dr-mono dr-note">Datos · Temporada {year}</span></div><div class="dr-card" style="padding:0"><table class="dr-tbl">'
     f'<tr><th>Pitch</th><th>Usage</th><th>Stuff+</th><th>Loc+</th><th>Δ alt.</th><th>Fit</th><th>Action</th><th>Confidence</th></tr>'
-    f'{"".join(rows)}</table><div class="dr-note" style="padding:10px 14px">Δ altitud = Stuff+ del mismo pitch en Harp Helú menos a nivel del mar. '
-    f'Fit por pitch = resiliencia frente a pitches del mismo tipo en la liga. Acciones con evidencia Conditional o Uncertain son sugerencias de revisión, no instrucciones.</div></div>',
+    f'{"".join(rows)}</table><div class="dr-note" style="padding:10px 14px">Δ alt. = efecto del aire sobre el Stuff+ del mismo pitch (variante física). '
+    f'Fit = Stuff+ proyectado en Harp Helú frente a pitches del mismo tipo. Action = pierde más de lo esperado para su nivel (Adjust/Review). '
+    f'Acciones con evidencia Conditional o Uncertain son sugerencias de revisión, no instrucciones.</div></div>',
     unsafe_allow_html=True)
 with c[1]:
     hh = st.columns([0.9, 1.3], vertical_alignment="bottom")
@@ -157,8 +159,10 @@ for col, (_, a) in zip(cols, top3.iterrows()):
     dw, dc = a.whiff_harp - a.whiff_mar, a.chase_harp - a.chase_mar
     net = "Unfavorable" if a.delta <= -2 else "Favorable" if a.delta >= 0.5 else "Neutral"
     note = {"Robust": "Modelo y Stuff+ observado del mismo pitcher coinciden en su tipo de pitch.",
-            "Conditional": "El modelo predice la pérdida por movimiento, pero en su tipo de pitch el Stuff+ observado en altitud casi no cae (posible compensación).",
-            "Uncertain": "Pocas comparaciones del mismo pitcher entre entornos: tomar como orientación."}[a.evidence]
+            "Conditional": "El Stuff+ observado del mismo pitcher en altitud va en la misma dirección, con más incertidumbre.",
+            "Uncertain": "En su tipo de pitch el efecto es pequeño o hay pocas comparaciones del mismo pitcher: tomar como orientación."}[a.evidence]
+    if abs(a.delta_oficial - a.delta) >= 0.7:
+        note += f" Con el modelo de arsenal (sensibilidad): {a.delta_oficial:+.1f}."
     if a.delta_observado == a.delta_observado:
         note += f" Este pitcher: observado {a.delta_observado:+.1f}."
     col.markdown(
@@ -175,9 +179,9 @@ for col, (_, a) in zip(cols, top3.iterrows()):
 # ---------------- Why? ----------------
 st.write("")
 st.markdown('<span class="dr-h2">Why?</span> <span class="dr-note">&nbsp;Factores principales detrás de cada lectura</span>', unsafe_allow_html=True)
-ev_note = {"Robust": "Evidencia Robust: el efecto modelado se sostiene entre ventanas, en el chequeo inverso y en el Stuff+ observado del mismo pitcher.",
-           "Conditional": "Evidencia Conditional: la pérdida por movimiento es consistente en el modelo, pero el Stuff+ observado del mismo pitcher en altitud no la confirma.",
-           "Uncertain": "Evidencia Uncertain: muestra limitada para este tipo de pitch o para este pitcher."}
+ev_note = {"Robust": "Evidencia Robust: el efecto (variante física) se sostiene entre ventanas, en el chequeo inverso y en el Stuff+ observado del mismo pitcher.",
+           "Conditional": "Evidencia Conditional: el efecto va en la misma dirección que lo observado, pero sin confirmarse con certeza en ambas temporadas.",
+           "Uncertain": "Evidencia Uncertain: efecto pequeño o inestable para este tipo de pitch, o muestra limitada."}
 for _, a in A[A.n >= 50].iterrows():
     g = fac[fac.AutoPitchType == a.AutoPitchType].set_index("env")
     title = f"{a.AutoPitchType} · {a.action} · Δ {a.delta:+.1f} Stuff+ · {a.evidence}"
@@ -187,6 +191,7 @@ for _, a in A[A.n >= 50].iterrows():
         f3 = f"Chase modelado {100 * a.chase_mar:.1f}% → {100 * a.chase_harp:.1f}%"
         f4 = (f"Stuff+ observado del pitcher: Extreme − No Altitude = {a.delta_observado:+.1f}" if a.delta_observado == a.delta_observado
               else "Sin suficientes pitches en ambos entornos para el contraste observado")
+        f4 += f" · con el modelo de arsenal el efecto sería {a.delta_oficial:+.1f}"
         st.markdown(
             f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px">'
             + "".join(f'<div><span class="dr-pill">{s}</span> {ui.esc(t)}</div>' for s, t in [("↓", f1), ("↓" if a.whiff_harp < a.whiff_mar else "↑", f2),

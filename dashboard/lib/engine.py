@@ -126,11 +126,21 @@ class Engine:
                 out.loc[m] = self.t22.to_env(rows[m], env, "No Altitude", self.fac)
         return out
 
-    def population_table(self, rows, ars, shifts=None):
+    def population_table(self, rows, ars, shifts=None, hybrid=True):
         """Stuff+ medio de los pitches reales del pitcher en cada entorno, con desplazamientos what-if
-        (sumados a cada pitch a nivel del mar). Con shifts vacíos reproduce la proyección de 22."""
+        (sumados a cada pitch a nivel del mar). hybrid=True (titular, guía 38): nivel = Stuff+ oficial a nivel
+        del mar y efecto de altitud = variante física; con shifts vacíos reproduce la proyección de 22.
+        hybrid=False: todo con la variante dada por ars (sensibilidad)."""
         sea = self._shift(self.sea_level(rows), shifts)
-        return self._score_envs(sea, ars)
+        return self._hybrid(sea, ars) if hybrid else self._score_envs(sea, ars)
+
+    def _hybrid(self, sea, ars):
+        off = self._score_envs(sea, ars).set_index("env")
+        phy = self._score_envs(sea, np.zeros(len(sea), bool)).set_index("env")
+        out = phy.copy()
+        for col in ["stuff_plus"] + [f"p_{c}" for c in SHOW]:
+            out[col] = off.loc["No Altitude", col] + phy[col] - phy.loc["No Altitude", col]
+        return out.reset_index()
 
     def _shift(self, sea, shifts):
         sea = sea.copy()
@@ -167,10 +177,10 @@ class Engine:
             self._samples[key] = (rows, sea, means)
         return self._samples[key]
 
-    def prospect(self, ptype, hand, values, fb=None, usage=None):
+    def prospect(self, ptype, hand, values, fb=None, usage=None, hybrid=True):
         """Un pitch de un prospecto: dispersión real de la liga (tipo y mano) recentrada en sus métricas a nivel
         del mar. Con fb y usage usa la variante con contexto de arsenal (diferencias contra su recta); si no,
-        la variante base (la validada para pitchers nuevos, guía 35)."""
+        la variante base (la validada para pitchers nuevos, guía 35). hybrid como en population_table."""
         _rows, sea, means = self.league_sample(ptype, hand)
         shifts = {f: values[f] - means[f] for f in self.SHIFTABLE if f in values and values[f] == values[f]}
         if "SpinAxis" in shifts:
@@ -184,7 +194,7 @@ class Engine:
             ars = np.ones(len(x), bool)
         else:
             ars = np.zeros(len(x), bool)
-        return self._score_envs(x, ars)
+        return self._hybrid(x, ars) if hybrid else self._score_envs(x, ars)
 
     def reference_base(self):
         """Δ de altitud de la liga (2026) con la variante SIN arsenal, por pitcher x tipo y por pitcher.
@@ -200,7 +210,7 @@ class Engine:
             d = pd.DataFrame({"pitcher_anon_id": rows.pitcher_anon_id.to_numpy(), "AutoPitchType": rows.AutoPitchType.astype(str).to_numpy(),
                               "mar": s_no, "harp": s_ex})
             d["delta"] = d.harp - d.mar
-            by_type = d.groupby(["pitcher_anon_id", "AutoPitchType"]).agg(n=("delta", "size"), delta=("delta", "mean")).reset_index()
+            by_type = d.groupby(["pitcher_anon_id", "AutoPitchType"]).agg(n=("delta", "size"), delta=("delta", "mean"), harp=("harp", "mean")).reset_index()
             by_p = d.groupby("pitcher_anon_id").agg(n=("delta", "size"), delta=("delta", "mean"), harp=("harp", "mean")).reset_index()
             self._ref_base = (by_type[by_type.n >= 50], by_p[by_p.n >= 100])
         return self._ref_base

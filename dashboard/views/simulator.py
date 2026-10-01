@@ -41,7 +41,8 @@ top[1].markdown(f'<div style="display:flex;justify-content:flex-end">{ui.env_bad
 # ---------------- origen del pitch ----------------
 qp, state = st.query_params, data.read_state()
 P, A, FP = data.load("pitchers"), data.load("arsenal"), data.load("fingerprint")
-year = int(qp.get("season", state.get("season", P.year.max())))
+year = 2026  # el Simulator usa el modelo vigente (ventana 2024-25 -> 2026), el único con pitches para transformar
+asked = qp.get("season")
 pool = P[(P.year == year) & (P.n >= 50)].sort_values("n", ascending=False)
 src = st.columns([1.2, 1.3, 1.2, 1.4], vertical_alignment="bottom")
 mode = src[0].segmented_control("Origen", ["Pitcher del roster", "Pitch manual"], default="Pitcher del roster")
@@ -65,6 +66,11 @@ if mode == "Pitch manual":
 else:
     pid0 = qp.get("pid", state.get("last_pid"))
     ids = pool.pitcher_anon_id.tolist()
+    if pid0 and pid0 not in ids:
+        st.info(f"{ui.pid_label(pid0)} no tiene suficientes pitches en 2026; el Simulator usa el modelo vigente (2026). "
+                "Elige otro pitcher o usa 'Pitch manual' con sus métricas.")
+    elif asked and str(asked) != "2026":
+        st.caption("El Simulator usa la temporada 2026 (modelo vigente).")
     pid = src[1].selectbox("Pitcher", ids, index=ids.index(pid0) if pid0 in ids else 0, format_func=ui.pid_label)
     ars = A[(A.year == year) & (A.pitcher_anon_id == pid) & (A.n >= 20)].sort_values("usage", ascending=False)
     types = ars.AutoPitchType.tolist()
@@ -109,18 +115,24 @@ with tabs[0]:
             v0 = base[f]
             lo, hi = (v0 - span, v0 + span) if f != "SpinAxis" else (max(0.0, v0 - span), min(360.0, v0 + span))
             scen[f] = st.slider(f"{lab} ({unit})", float(round(lo, 2)), float(round(hi, 2)), float(round(v0, 2)), step, key=f"{key}|{f}")
-        use_ars = st.toggle("Usar contexto de arsenal (diferencias vs. su recta y uso)", value=base_fb is not None, disabled=base_fb is None,
-                            help="Con contexto de arsenal se usa la variante del modelo con historial; sin él, la variante base (la que recibe un prospecto).")
+        use_ars = base_fb is not None
+        st.markdown('<div class="dr-note" style="margin-top:6px">Nivel = Stuff+ oficial a nivel del mar; efecto de altitud = variante física del '
+                    'modelo (titular, guía 38: coincide con lo observado). La lectura muestra también la sensibilidad con el modelo de arsenal.</div>',
+                    unsafe_allow_html=True)
     fb, us = (base_fb, usage) if use_ars else (None, None)
     if fb is not None and ptype in ("Four-Seam", "Sinker") and meta.get("fb") == ptype:
         fb_s = dict(fb); fb_s.update({k: scen[k] for k in ["RelSpeed", "InducedVertBreak", "HorzBreak", "SpinRate", "Extension", "RelHeight"]})
     else:
         fb_s = fb
     shifts = {f: scen[f] - base[f] for f, *_ in FIELDS}
+    sens = None
     if rows is not None:
-        r_ars = rows_ars if use_ars else np.zeros(len(rows), bool)
+        r_ars = rows_ars
         tb = E.population_table(rows, r_ars)
         ts = E.population_table(rows, r_ars, shifts)
+        if r_ars.any():
+            so = E.population_table(rows, r_ars, shifts, hybrid=False).set_index("env").stuff_plus
+            sens = so["Extreme Altitude"] - so["No Altitude"]
     else:
         tb = E.altitude_table(base, fb, us)
         ts = E.altitude_table(scen, fb_s, us)
@@ -167,6 +179,8 @@ with tabs[0]:
                   f"El mismo pitch pierde {hh.loc['No Altitude', 'stuff_plus'] - hh.loc['Extreme Altitude', 'stuff_plus']:.1f} de Stuff+ al pasar del nivel del mar "
                   f"a Harp Helú (IVB {hh.loc['No Altitude', 'IVB']:.1f} → {hh.loc['Extreme Altitude', 'IVB']:.1f} in). Mueve los controles para explorar ajustes.")
                + f'</div><div style="margin-bottom:10px">{ui.conf_bars(evidence)}</div>'
+               + ("" if sens is None else f'<div class="dr-note">Sensibilidad · efecto de altitud con el modelo de arsenal: {sens:+.1f} '
+                  f'(además penaliza que la separación contra la recta se encoja; no aparece en lo observado).</div>')
                + "".join(f'<div class="dr-note" style="color:{ui.YEL}">⚠ {ui.esc(w)}: el modelo extrapola.</div>' for w in warn)
                + '<div class="dr-note" style="margin-top:8px">What-if exploratorio: cambia la física del pitch dentro del modelo. No garantiza que el '
                  'pitcher pueda lograr ese cambio ni que el efecto sea causal. Medium usa los factores de 20 (todas las temporadas).</div>')

@@ -7,24 +7,25 @@ aqui, documentadas y con umbrales explicitos, para que el dashboard solo muestre
 Definiciones
   Temporada      = temporada evaluada fuera de muestra: 2025 (modelo 2024 -> 2025) y 2026 (modelo
                    2024-25 -> 2026). Scores oficiales de 18 (stuff_plus, location_plus, pitching_plus).
-  Delta altitud  = Stuff+ proyectado en Harp Helu (proxy Extreme) menos Stuff+ proyectado a nivel del
-                   mar (22): mismo pitch, solo cambia el movimiento por el aire. Es neutral al lugar
-                   donde se lanzo el pitch.
+  Delta altitud  = efecto del aire sobre el Stuff+ del mismo pitch (22), con la variante FISICA del modelo
+                   (titular desde la auditoria 2, guia 38: coincide con lo observado). delta_oficial = misma
+                   cuenta con la variante con arsenal (sensibilidad). Stuff+ en Harp Helu = Stuff+ oficial a
+                   nivel del mar + Delta altitud.
   Delta observado= Stuff+ real en Extreme menos en No Altitude del mismo pitcher x tipo (>= 20 pitches
                    en ambos); se pondera por el uso total del pitcher. Secundario: incluye adaptacion.
-  Harp Helu Fit  = resiliencia del arsenal a la altitud: percentil del Delta altitud (ponderado por uso)
-                   entre pitchers con >= 100 pitches en la temporada. Strong >= p75 (pierde menos),
-                   Moderate p50-p75, Low p25-p50, Poor < p25. NO es calidad: la calidad es Stuff+.
-  Fit por pitch  = mismo criterio de percentiles, pero comparando el Delta del pitch contra los pitches del
-                   mismo tipo en la liga (>= 50 pitches): separa 'este four-seam pierde mas que otros four-seam'
-                   de 'los four-seam pierden en altitud'.
+  Harp Helu Fit  = CALIDAD donde importa (decision de la auditoria 2): percentil del Stuff+ proyectado en
+                   Harp Helu entre pitchers con >= 100 pitches. Strong >= p75, Moderate p50-p75, Low p25-p50,
+                   Poor < p25. La sensibilidad a la altitud (Delta) se reporta aparte: medirla sola castigaba
+                   a los mejores pitchers (corr Stuff+ vs Delta = -0.52).
+  Exceso         = residual del Delta tras controlar el Stuff+ a nivel del mar dentro de cada tipo de pitch:
+                   cuanto pierde un pitch MAS (negativo) o MENOS de lo esperado para su nivel.
+  Fit por pitch  = percentil del Stuff+ proyectado en Harp Helu frente a pitches del mismo tipo (>= 50 pitches).
   Confianza      = por pitcher: Robust si >= 60% de sus pitches son de tipos con evidencia Robusta (21)
                    y tiene >= 300 pitches; Uncertain si < 150 pitches o >= 40% en tipos Inciertos;
                    Conditional en otro caso. Por pitch: el nivel de su tipo (21), Uncertain si < 50 pitches.
-  Semaforo pitch = RELATIVO a su tipo (todos los tipos pierden en altitud; un umbral absoluto marcaba a la
-                   mitad de la liga): Adjust si Fit por pitch = Poor (cuartil que mas pierde entre pitches del
-                   mismo tipo) y el tipo tiene evidencia Robusta; Review si Fit = Poor o Low; Maintain en otro
-                   caso. Prioridades de revision, no instrucciones de uso.
+  Semaforo pitch = 'pierde mas de lo esperado': Adjust si su Exceso esta en el 10% mas bajo de su tipo y el tipo
+                   tiene evidencia Robusta; Review si esta en el 25% mas bajo; Maintain en otro caso.
+                   Prioridades de revision, no instrucciones de uso.
   Alerta pitcher = Needs attention si un pitch con uso >= 15% esta en Adjust; Review si un pitch central
                    (uso >= 30%) esta en Review; Maintain en otro caso.
   Inbox          = un item por pitcher en alerta (su pitch mas afectado) + oportunidades: pitches con
@@ -160,7 +161,7 @@ def main():
     for year, win in WINDOWS.items():
         entry, fac = bundle[win], fac_all[win]
         sc = sc_all[sc_all.window == win].copy()
-        pr = proj_all[proj_all.window == win][["PitchUID", "stuff_nivel_mar", "stuff_harp_helu"]]
+        pr = proj_all[proj_all.window == win][["PitchUID", "stuff_nivel_mar", "stuff_harp_helu", "delta_oficial"]]
         sc = sc.merge(pr, on="PitchUID", how="left").merge(seq, on="PitchUID", how="left")
         sc["delta"] = sc["stuff_harp_helu"] - sc["stuff_nivel_mar"]
 
@@ -188,7 +189,7 @@ def main():
         g = sc.groupby(["pitcher_anon_id", "AutoPitchType"])
         a = g.agg(n=("PitchUID", "size"), stuff_plus=("stuff_plus", "mean"), location_plus=("location_plus", "mean"),
                   pitching_plus=("pitching_plus", "mean"), stuff_mar=("stuff_nivel_mar", "mean"), stuff_harp=("stuff_harp_helu", "mean"),
-                  delta=("delta", "mean"), whiff_mar=("whiff_per_pitch_mar", "mean"), whiff_harp=("whiff_per_pitch_harp", "mean"),
+                  delta=("delta", "mean"), delta_oficial=("delta_oficial", "mean"), whiff_mar=("whiff_per_pitch_mar", "mean"), whiff_harp=("whiff_per_pitch_harp", "mean"),
                   chase_mar=("chase_mar", "mean"), chase_harp=("chase_harp", "mean")).reset_index()
         a["usage"] = a["n"] / a.groupby("pitcher_anon_id")["n"].transform("sum")
         obs = sc[sc.altitude_category.isin(["No Altitude", "Extreme Altitude"])].groupby(["pitcher_anon_id", "AutoPitchType", "altitude_category"])["stuff_plus"].agg(["size", "mean"]).unstack()
@@ -204,12 +205,23 @@ def main():
         a["code"] = a["AutoPitchType"].map(CODE)
         a["evidence"] = np.where(a["n"] < MIN_PITCH, "Uncertain", a["AutoPitchType"].map(ev_map).fillna("Uncertain"))
         robust = a["AutoPitchType"].map(ev_map).eq("Robust")
-        # Fit por pitch: resiliencia frente a pitches del MISMO tipo en la liga (>= 50 pitches).
+        # Fit por pitch = calidad proyectada en Harp Helu frente a pitches del MISMO tipo (>= 50 pitches).
         a["fit"] = "Sin muestra"
-        for t, idx in a[a.n >= MIN_PITCH].groupby("AutoPitchType").groups.items():
-            a.loc[idx, "fit"] = pct_band(a.loc[idx, "delta"].to_numpy(), a.loc[idx, "delta"].to_numpy())
-        # Semaforo relativo: todos los tipos pierden en altitud; se alerta a quien pierde mas que su tipo.
-        a["action"] = np.select([(a.fit == "Poor Fit") & robust, a.fit.isin(["Poor Fit", "Low Fit"])], ["Adjust", "Review"], "Maintain")
+        a["exceso"] = np.nan
+        a["exceso_pct"] = np.nan
+        for t, idx in a.groupby("AutoPitchType").groups.items():
+            g_ = a.loc[idx]; ok = (g_.n >= MIN_PITCH) & g_.delta.notna() & g_.stuff_mar.notna()
+            if ok.sum() < 10:
+                continue
+            a.loc[g_.index[ok], "fit"] = pct_band(g_.loc[ok, "stuff_harp"].to_numpy(), g_.loc[ok, "stuff_harp"].to_numpy())
+            # Exceso de perdida = residual del delta tras controlar el Stuff+ a nivel del mar dentro del tipo
+            # (los mejores pitches pierden mas puntos; corr -0.52). Negativo = pierde mas de lo esperado para su nivel.
+            b1, b0 = np.polyfit(g_.loc[ok, "stuff_mar"], g_.loc[ok, "delta"], 1)
+            a.loc[idx, "exceso"] = g_["delta"] - (b0 + b1 * g_["stuff_mar"])
+            ref_ = a.loc[g_.index[ok], "exceso"]
+            a.loc[idx, "exceso_pct"] = a.loc[idx, "exceso"].apply(lambda v: (ref_ <= v).mean())
+        a["action"] = np.select([(a.exceso_pct <= 0.10) & robust & (a.n >= MIN_PITCH), (a.exceso_pct <= 0.25) & (a.n >= MIN_PITCH)],
+                                ["Adjust", "Review"], "Maintain")
         a["year"] = year
         # Movimiento por entorno: observado si hay >= 20 pitches; si no, proyectado con los factores de 20/21.
         mv = r[r.altitude_category.isin(["No Altitude", "Medium Altitude", "Extreme Altitude"])].groupby(
@@ -232,7 +244,8 @@ def main():
             od_ok = gg.dropna(subset=["delta_observado"])
             row = {"year": year, "pitcher_anon_id": pid, "n": int(n), "stuff_plus": wavg(gg, "stuff_plus"), "location_plus": wavg(gg, "location_plus"),
                    "pitching_plus": wavg(gg, "pitching_plus"), "stuff_mar": wavg(gg, "stuff_mar"), "stuff_harp": wavg(gg, "stuff_harp"),
-                   "delta": wavg(gg, "delta"),
+                   "delta": wavg(gg, "delta"), "delta_oficial": wavg(gg, "delta_oficial"),
+                   "exceso": np.average(gg["exceso"].fillna(0), weights=gg["n"]),
                    "delta_observado": np.average(od_ok["delta_observado"], weights=od_ok["n"]) if len(od_ok) else np.nan,
                    "share_robust": gg.loc[gg.AutoPitchType.map(ev_map).eq("Robust"), "n"].sum() / n,
                    "share_uncertain": gg.loc[gg.AutoPitchType.map(ev_map).eq("Uncertain"), "n"].sum() / n}
@@ -250,9 +263,11 @@ def main():
         p["hand"] = p["pitcher_anon_id"].map(hand).map({"Right": "RHP", "Left": "LHP"}).fillna("—")
         p = p.merge(rl[["pitcher_anon_id", "role", "apps", "pitches_per_app"]], on="pitcher_anon_id", how="left").merge(
             tm[["pitcher_anon_id", "team_label", "team_home_env"]], on="pitcher_anon_id", how="left")
-        ref = p.loc[p.n >= MIN_FIT, "delta"]
-        p["fit"] = np.where(p.n >= MIN_FIT, pct_band(p["delta"].to_numpy(), ref), "Sin muestra")
-        p["fit_pct"] = p["delta"].rank(pct=True)
+        elig = p.n >= MIN_FIT
+        p["fit"] = np.where(elig, pct_band(p["stuff_harp"].to_numpy(), p.loc[elig, "stuff_harp"]), "Sin muestra")
+        p["fit_pct"] = p["stuff_harp"].apply(lambda v: (p.loc[elig, "stuff_harp"] <= v).mean())
+        p["sens_pct"] = p["delta"].apply(lambda v: (p.loc[elig, "delta"] <= v).mean())  # alto = pierde menos
+        p["exceso_pct"] = p["exceso"].apply(lambda v: (p.loc[elig, "exceso"] <= v).mean())  # alto = pierde menos de lo esperado
         p["confidence"] = np.select([(p.share_robust >= 0.6) & (p.n >= 300), (p.n < 150) | (p.share_uncertain >= 0.4)], ["Robust", "Uncertain"], "Conditional")
         # Tendencia semanal (Stuff+ medio por semana ISO con >= 20 pitches).
         sc["week"] = sc["date"].dt.to_period("W").dt.start_time
@@ -262,19 +277,32 @@ def main():
         pitchers.append(p); arsenal.append(a)
 
         # ---------------- inbox ----------------
+        fpy = pd.DataFrame([r for r in fps if r["year"] == year]).set_index(["pitcher_anon_id", "AutoPitchType", "env"])
+
+        def mov_text(pid, ptype):
+            # componente que mas cambia (IVB en rectas, HB en cambios), nivel del mar -> Harp Helu
+            try:
+                m0, m1 = fpy.loc[(pid, ptype, "No Altitude")], fpy.loc[(pid, ptype, "Extreme Altitude")]
+            except KeyError:
+                return ""
+            c, lab = max([("ivb", "IVB"), ("hb", "HB")], key=lambda t: abs(m1[t[0]] - m0[t[0]]))
+            src = "observado" if (m0.fuente == "observado") and (m1.fuente == "observado") else "proyectado"
+            return f"{lab} {src} {m0[c]:.1f} → {m1[c]:.1f} in · "
+
         for _, pp in p[p.alert.isin(["red", "yellow"])].iterrows():
             gg = a[(a.pitcher_anon_id == pp.pitcher_anon_id) & (a.usage >= (0.15 if pp.alert == "red" else 0.30)) & (a.action != "Maintain")].sort_values("delta").iloc[0]
             inbox.append({"year": year, "pitcher_anon_id": pp.pitcher_anon_id, "type": "Needs attention" if pp.alert == "red" else "Review",
                           "alert": pp.alert, "AutoPitchType": gg.AutoPitchType, "code": gg.code, "delta": gg.delta,
-                          "headline": f"El {gg.AutoPitchType} pierde {abs(gg.delta):.1f} de Stuff+ en Harp Helú, más que la mayoría de los {gg.AutoPitchType} de la liga",
-                          "evidence_text": (f"Movimiento IVB {gg.ivb:.1f} → {gg.ivb * fac['Extreme Altitude']['InducedVertBreak']:.1f} in · whiff modelado "
+                          "headline": (f"El {gg.AutoPitchType} pierde {abs(gg.delta):.1f} de Stuff+ en Harp Helú, "
+                                       f"{abs(gg.exceso):.1f} más de lo esperado para un {gg.AutoPitchType} de su nivel"),
+                          "evidence_text": (f"{mov_text(pp.pitcher_anon_id, gg.AutoPitchType)}whiff modelado "
                                             f"{100 * gg.whiff_mar:.1f}% → {100 * gg.whiff_harp:.1f}% · n = {int(gg.n)}"),
                           "confidence": gg.evidence, "usage": gg.usage})
-        opp = a[(a.stuff_plus >= 105) & (a.delta > -1.5) & (a.n >= MIN_PITCH)].merge(p[["pitcher_anon_id", "n"]].rename(columns={"n": "n_p"}), on="pitcher_anon_id")
+        opp = a[(a.stuff_harp >= 105) & (a.exceso_pct >= 0.5) & (a.n >= MIN_PITCH)].merge(p[["pitcher_anon_id", "n"]].rename(columns={"n": "n_p"}), on="pitcher_anon_id")
         opp = opp[opp.n_p >= MIN_FIT]
         for _, gg in opp.iterrows():
             inbox.append({"year": year, "pitcher_anon_id": gg.pitcher_anon_id, "type": "Opportunity", "alert": "green", "AutoPitchType": gg.AutoPitchType,
-                          "code": gg.code, "delta": gg.delta, "headline": f"El {gg.AutoPitchType} sostiene su calidad en Harp Helú (Stuff+ {gg.stuff_plus:.0f}, Δ {gg.delta:+.1f})",
+                          "code": gg.code, "delta": gg.delta, "headline": f"El {gg.AutoPitchType} se proyecta élite en Harp Helú (Stuff+ {gg.stuff_harp:.0f}) y pierde menos de lo esperado (Δ {gg.delta:+.1f})",
                           "evidence_text": f"Stuff+ proyectado {gg.stuff_mar:.0f} → {gg.stuff_harp:.0f} · n = {int(gg.n)}", "confidence": gg.evidence, "usage": gg.usage})
 
         # ---------------- targets ----------------

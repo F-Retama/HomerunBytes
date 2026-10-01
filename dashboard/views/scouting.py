@@ -58,13 +58,17 @@ with tabs[0]:
     t = st.segmented_control("Tipo de pitch", TYPES, default="Four-Seam")
     if t:
         ev = EV.loc[t]
+        DT = data.load("delta_by_type")
+        d_of = float(DT[(DT.variante == "oficial") & (DT.AutoPitchType == t) & DT.window.astype(str).str.endswith("2026")].delta_stuff.iloc[0])
         lvl = {"Robusto": "Robust", "Condicional": "Conditional", "Incierto": "Uncertain"}[ev.nivel_evidencia]
         c = st.columns([1.2, 1])
         c[0].markdown(
             f'<div class="dr-card"><div style="display:flex;gap:10px;align-items:center"><span class="dr-code">{ui.CODE[t]}</span>'
             f'<span class="dr-h2">{t} en Harp Helú</span></div>'
-            f'<div style="display:flex;gap:28px;margin:14px 0"><div><div class="dr-label">Δ Stuff+ modelado (2026)</div>'
+            f'<div style="display:flex;gap:28px;margin:14px 0"><div><div class="dr-label">Δ Stuff+ modelado (2026 · física)</div>'
             f'<span class="dr-kpi-v">{ev.delta_2026:+.1f}</span> <span class="dr-note">[{ev.ci95_lo:+.1f}, {ev.ci95_hi:+.1f}]</span></div>'
+            f'<div><div class="dr-label">Con modelo de arsenal</div><span class="dr-kpi-v" style="color:{ui.DIM}">{d_of:+.1f}</span>'
+            f' <span class="dr-note">sensibilidad</span></div>'
             f'<div><div class="dr-label">Observado mismo pitcher</div><span class="dr-kpi-v" style="color:{ui.DIM}">'
             f'{"—" if ev.observado_2026 != ev.observado_2026 else f"{ev.observado_2026:+.1f}"}</span></div>'
             f'<div><div class="dr-label">Evidencia</div><div style="margin-top:10px">{ui.conf_bars(lvl)}</div></div></div>'
@@ -201,7 +205,7 @@ with tabs[2]:
         if use_ars and len(fbr):
             fb = {cols[k]: float(fbr.iloc[0][k]) for k in cols}
         if fb:  # misma variante que la referencia oficial (scores de 18 con arsenal cuando existe)
-            AL = A[(A.year == 2026) & (A.n >= 50)]
+            AL = A[(A.year == 2026) & (A.n >= 50)].rename(columns={"stuff_harp": "harp"})
             PL = P[(P.year == 2026) & (P.n >= 100)].rename(columns={"stuff_harp": "harp"})
         else:   # referencia de la liga calculada con la variante sin arsenal (comparación justa)
             with st.spinner("Calculando la referencia de la liga sin arsenal (una sola vez)…"):
@@ -214,37 +218,43 @@ with tabs[2]:
             t = r["Tipo"]
             tb = E.prospect(t, phand, vals, fb=fb, usage=usage if fb else None).set_index("env")
             d = tb.loc["Extreme Altitude", "stuff_plus"] - tb.loc["No Altitude", "stuff_plus"]
-            ref_d = AL[AL.AutoPitchType == t].delta
-            pct = float((ref_d <= d).mean()) if len(ref_d) else np.nan
+            d_of = d
+            if fb:
+                to = E.prospect(t, phand, vals, fb=fb, usage=usage, hybrid=False).set_index("env").stuff_plus
+                d_of = to["Extreme Altitude"] - to["No Altitude"]
+            ref_h = AL[AL.AutoPitchType == t].harp
+            pct = float((ref_h <= tb.loc["Extreme Altitude", "stuff_plus"]).mean()) if len(ref_h) else np.nan
             fit = "Strong Fit" if pct >= .75 else "Moderate Fit" if pct >= .5 else "Low Fit" if pct >= .25 else "Poor Fit"
             prof = PRF[(PRF.AutoPitchType == t) & PRF.en_perfil & PRF.feature.isin(cols.values())]
             inz = sum(1 for q in prof.itertuples() if (q.zona_p25 <= vals[q.feature] <= q.zona_p75)
                       or (q.lift_extreme_2025 > 0 and vals[q.feature] > q.zona_p75) or (q.lift_extreme_2025 < 0 and vals[q.feature] < q.zona_p25))
             out.append({"Tipo": t, "usage": usage, "mar": tb.loc["No Altitude", "stuff_plus"], "harp": tb.loc["Extreme Altitude", "stuff_plus"], "delta": d,
+                        "sens": "" if abs(d_of - d) < 0.7 else f'<div class="dr-note">arsenal {d_of:+.1f}</div>',
                         "fit": fit, "perfil": f"{inz} de {len(prof)}" if len(prof) else "—", "whiff_harp": tb.loc["Extreme Altitude", "p_whiff_per_pitch"],
                         "IVB_harp": tb.loc["Extreme Altitude", "IVB"], "HB_harp": tb.loc["Extreme Altitude", "HB"], "warn": E.out_of_range({**vals, "AutoPitchType": t})})
         O = pd.DataFrame(out)
         w = O.usage / O.usage.sum() if O.usage.sum() > 0 else np.full(len(O), 1 / len(O))
         ars_mar, ars_harp = float((O.mar * w).sum()), float((O.harp * w).sum())
         ars_d = ars_harp - ars_mar
-        fit_pct = float((PL.delta <= ars_d).mean()); harp_pct = float((PL.harp <= ars_harp).mean())
+        sens_pct = float((PL.delta <= ars_d).mean()); fit_pct = harp_pct = float((PL.harp <= ars_harp).mean())
         fit_all = "Strong Fit" if fit_pct >= .75 else "Moderate Fit" if fit_pct >= .5 else "Low Fit" if fit_pct >= .25 else "Poor Fit"
         k = st.columns(4)
         for col, lab, val, sub in [(k[0], "Stuff+ arsenal · nivel del mar", f"{ars_mar:.1f}", "ponderado por uso"),
                                    (k[1], "Stuff+ arsenal · Harp Helú", f"{ars_harp:.1f}", f"percentil {harp_pct:.0%} de la liga"),
-                                   (k[2], "Δ altitud", f"{ars_d:+.1f}", f"percentil de resiliencia {fit_pct:.0%}"),
+                                   (k[2], "Δ altitud", f"{ars_d:+.1f}", f"percentil {sens_pct:.0%} (alto = pierde menos)"),
                                    (k[3], "Harp Helú Fit", "", "")]:
             col.markdown(f'<div class="dr-card" style="height:96px"><div class="dr-label">{lab}</div><div style="margin-top:8px">'
                          + (ui.fit_pill(fit_all) if lab == "Harp Helú Fit" else f'<span class="dr-kpi-v">{val}</span> <span class="dr-kpi-s">{sub}</span>')
                          + '</div></div>', unsafe_allow_html=True)
         rows = "".join(f'<tr><td><span class="dr-code">{ui.CODE[o.Tipo]}</span> <b>{o.Tipo}</b></td><td class="dr-mono">{o.usage:.0%}</td>'
-                       f'<td class="dr-mono">{o.mar:.1f} → <b>{o.harp:.1f}</b></td><td>{ui.delta_fmt(o.delta)}</td><td>{ui.fit_pill(o.fit)}</td>'
+                       f'<td class="dr-mono">{o.mar:.1f} → <b>{o.harp:.1f}</b></td><td>{ui.delta_fmt(o.delta)}{o.sens}</td><td>{ui.fit_pill(o.fit)}</td>'
                        f'<td class="dr-mono">{o.IVB_harp:.1f} / {o.HB_harp:.1f}</td><td class="dr-mono">{o.whiff_harp:.1%}</td><td class="dr-mono">{o.perfil}</td>'
                        f'<td class="dr-note" style="color:{ui.YEL}">{"⚠ " + "; ".join(o.warn) if o.warn else ""}</td></tr>' for o in O.itertuples())
         st.markdown(f'<div class="dr-card" style="padding:0;margin-top:12px"><table class="dr-tbl"><tr><th>Pitch</th><th>Uso</th><th>Stuff+ mar → Harp</th><th>Δ</th>'
                     f'<th>Fit vs. su tipo</th><th>IVB / HB en Harp</th><th>Whiff en Harp</th><th>Rasgos del perfil</th><th></th></tr>{rows}</table>'
                     f'<div class="dr-note" style="padding:10px 14px">Cada pitch se simula con la dispersión real de la liga (tipo y mano) centrada en sus métricas. '
-                    f'Fit = percentil de su Δ entre pitches del mismo tipo en la liga (2026). "Rasgos del perfil" = cuántos rasgos del perfil ideal cumple '
+                    f'Fit = percentil de su Stuff+ proyectado en Harp Helú entre pitches del mismo tipo en la liga (2026). Δ = variante física '
+                    f'(titular); "arsenal" = sensibilidad con el modelo de arsenal cuando difiere ≥ 0.7. "Rasgos del perfil" = cuántos rasgos del perfil ideal cumple '
                     f'(dentro de la zona o más allá en la dirección favorable). Variante {"con" if fb else "sin"} contexto de arsenal; los percentiles se '
                     f'calculan contra la liga evaluada con la misma variante.</div></div>',
                     unsafe_allow_html=True)
@@ -252,7 +262,7 @@ with tabs[2]:
             n = data.add_to_shortlist([{"key": f"x:{pname}", "kind": "prospect", "name": pname, "hand": phand, "added": datetime.now().strftime("%Y-%m-%d"),
                                         "priority": "B", "note": "", "arsenal_context": bool(fb),
                                         "results": {"stuff_mar": ars_mar, "stuff_harp": ars_harp, "delta": ars_d, "fit": fit_all,
-                                                    "pitches": O.drop(columns="warn").to_dict("records")},
+                                                    "pitches": O.drop(columns=["warn", "sens"]).to_dict("records")},
                                         "inputs": ed.to_dict("records")}])
             st.session_state["sl_msg"] = f"Shortlist: {n} candidatos"
             st.rerun()
