@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>body{margin:0;background:#e9e7e2;font-family:'IBM Plex Sans',system-ui,sans-serif}a{color:#eeede9;text-decoration:none}a:hover{color:#fff}.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.18);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}</style>
+</helmet>
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Screen 02 — Coach / Player Overview</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Pitcher 014 · llegada desde Recommendation Inbox</div>
+<div class="dv-card" data-screen-label="Player — Pitcher 014" style="width:1440px;background:#101114;color:#eeede9;font-family:'IBM Plex Sans',system-ui,sans-serif">
+
+  <div style="height:3px;background:#d4262f"></div>
+  <header style="height:60px;background:#0a0b0d;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 40px;gap:40px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:30px;height:30px;border-radius:6px;background:#d4262f;display:flex;align-items:center;justify-content:center;font:700 15px/1 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:0.02em">DR</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Pitching Decision System</span>
+        <span style="font:400 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097">Diablos Rojos del México</span>
+      </div>
+    </div>
+    <nav style="display:flex;align-items:stretch;height:60px;gap:4px">
+      <a href="Pitching Staff.dc.html" style="display:flex;align-items:center;padding:0 16px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab" style-hover="color:#eeede9">Roster</a>
+      <a href="#" style="display:flex;align-items:center;padding:0 16px;font:600 14px/1 'IBM Plex Sans',sans-serif;color:#fff;border-bottom:2px solid #d4262f;margin-bottom:-1px">Player</a>
+      <a href="#" style="display:flex;align-items:center;padding:0 16px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab" style-hover="color:#eeede9">Simulator</a>
+      <a href="#" style="display:flex;align-items:center;padding:0 16px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab" style-hover="color:#eeede9">Scouting</a>
+      <a href="#" style="display:flex;align-items:center;padding:0 16px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab" style-hover="color:#eeede9">Game</a>
+    </nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <span style="font:400 12px/1 'IBM Plex Sans',sans-serif;color:#8d9097">Pitching coach</span>
+      <div style="width:32px;height:32px;border-radius:50%;background:#23252a;border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font:600 12px/1 'IBM Plex Sans',sans-serif;color:#eeede9">PC</div>
+    </div>
+  </header>
+
+  <main style="padding:28px 40px 48px">
+    <a href="Pitching Staff.dc.html" style="display:inline-flex;align-items:center;gap:8px;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#8d9097" style-hover="color:#eeede9">← Pitching Staff</a>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-top:18px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <h1 style="margin:0;font:700 46px/1 'Barlow Condensed',sans-serif;letter-spacing:0.005em;color:#f3f2ee">Pitcher 014</h1>
+          <span style="display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;background:oklch(0.7 0.19 29 / 0.14);color:oklch(0.7 0.19 29);font:600 12px/1 'IBM Plex Sans',sans-serif"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.7 0.19 29)"></span>Needs attention</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:8px;background:#17181c;border:1px solid rgba(255,255,255,0.07);font:500 13px/1 'IBM Plex Sans',sans-serif;color:#eeede9">RHP · SP <span title="Metadata opcional, externa al dataset" style="font:500 9px/1 'IBM Plex Mono',monospace;color:#8d9097;border:1px solid rgba(255,255,255,0.16);padding:2px 4px;border-radius:3px;letter-spacing:0.05em;text-transform:uppercase;cursor:help">ext</span></span>
+          <button style="display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-radius:8px;background:#17181c;border:1px solid rgba(255,255,255,0.14);color:#eeede9;font:500 13px/1 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="border-color:rgba(255,255,255,0.3)"><span style="color:#8d9097">Temporada</span><span style="font-weight:600">2026</span><span style="color:#8d9097;font-size:10px">▼</span></button>
+          <div onMouseEnter="{{ envOn }}" onMouseLeave="{{ envOff }}" style="position:relative;display:flex;align-items:center;gap:10px;height:40px;padding:0 12px 0 14px;border-radius:8px;background:#17181c;border:1px solid rgba(255,255,255,0.07);cursor:help">
+            <div style="width:8px;height:8px;background:#d4262f;transform:rotate(45deg)"></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font:600 13px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Extreme Altitude</span>
+              <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:#8d9097">Proxy Harp Helú · CDMX</span>
+            </div>
+            <span style="width:15px;height:15px;border-radius:50%;border:1px solid #6a6c73;display:flex;align-items:center;justify-content:center;font:italic 600 10px/1 Georgia,serif;color:#a2a4ab">i</span>
+            <sc-if value="{{ envTip }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:calc(100% + 8px);left:0;width:260px;padding:10px 12px;border-radius:8px;background:#23252a;border:1px solid rgba(255,255,255,0.1);box-shadow:0 8px 24px rgba(0,0,0,0.4);font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#c6c8cd;z-index:20">El modelo utiliza la categoría Extreme Altitude del dataset como proxy del entorno Harp Helú.</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button style="height:40px;padding:0 16px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.16);color:#eeede9;font:500 13px/1 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="border-color:rgba(255,255,255,0.4)">Compare</button>
+        <button style="height:40px;padding:0 16px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.16);color:#eeede9;font:500 13px/1 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="border-color:rgba(255,255,255,0.4)">View History</button>
+        <button style="height:40px;padding:0 18px;border-radius:8px;border:0;background:#f1efea;color:#111214;font:600 13px/1 'IBM Plex Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:#ffffff">Open Simulator <span>→</span></button>
+      </div>
+    </div>
+
+    <sc-if value="{{ showBand }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:14px;margin-top:22px;padding:12px 16px;border-radius:10px;background:#17181c;border:1px solid rgba(255,255,255,0.1)">
+        <div style="width:7px;height:7px;background:#d4262f;transform:rotate(45deg)"></div>
+        <span style="font:500 13px/1 'IBM Plex Sans',sans-serif;color:#8d9097">Reviewing:</span>
+        <span style="font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Four-Seam · Altitude adaptation</span>
+        <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
+        <span style="display:flex;align-items:center;gap:8px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab">
+          <span style="display:flex;gap:2px"><span style="width:14px;height:4px;border-radius:1px;background:#e4e2dc"></span><span style="width:14px;height:4px;border-radius:1px;background:#e4e2dc"></span><span style="width:14px;height:4px;border-radius:1px;background:#34363c"></span></span>
+          <b style="color:#eeede9;font-weight:600">Conditional</b> evidence
+        </span>
+        <span style="margin-left:auto;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#7d8088">Desde Recommendation Inbox</span>
+      </div>
+    </sc-if>
+
+    <section style="margin-top:22px;border-radius:14px;background:#1a1b20;border:1px solid rgba(255,255,255,0.08)">
+      <div style="display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:0">
+        <div style="padding:28px 32px;display:flex;flex-direction:column;gap:16px;border-right:1px solid rgba(255,255,255,0.07)">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Current Recommendation</span>
+            <span style="display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;background:oklch(0.84 0.15 85 / 0.13);color:oklch(0.84 0.15 85);font:600 12px/1 'IBM Plex Sans',sans-serif"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.84 0.15 85)"></span>Review</span>
+          </div>
+          <h2 style="margin:0;font:600 27px/1.28 'IBM Plex Sans',sans-serif;color:#f6f5f1;text-wrap:pretty;max-width:720px">Considerar menos Four-Seam arriba de la zona en casa y apoyarse más en el Sinker vs. RHH. Validar en Simulator antes de ajustar el plan.</h2>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;margin-top:4px">
+            <span style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:6px;background:#24262c;border:1px solid rgba(255,255,255,0.08)"><span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">FF</span><span style="font:500 13px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Four-Seam</span></span>
+            <span style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:6px;background:#24262c;border:1px solid rgba(255,255,255,0.08)"><span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">SI</span><span style="font:500 13px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Sinker</span></span>
+            <div style="width:1px;height:22px;background:rgba(255,255,255,0.1)"></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Confidence</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="display:flex;gap:3px"><span style="width:22px;height:6px;border-radius:2px;background:#e4e2dc"></span><span style="width:22px;height:6px;border-radius:2px;background:#e4e2dc"></span><span style="width:22px;height:6px;border-radius:2px;background:#34363c"></span></span><span style="font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9">Conditional <span style="font-weight:400;font-size:12px;color:#8d9097">evidence</span></span></span>
+            </div>
+            <a href="#why" onClick="{{ openFF }}" style="margin-left:auto;flex:none;display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.18);font:600 13px/1 'IBM Plex Sans',sans-serif;color:#eeede9" style-hover="border-color:rgba(255,255,255,0.4)">Why? <span>↓</span></a>
+          </div>
+        </div>
+        <div style="padding:28px 32px;display:flex;flex-direction:column;gap:22px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="display:flex;align-items:center;gap:8px;font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.76 0.15 152)"></span>Primary Strength</span>
+            <p style="margin:0;font:500 16px/1.4 'IBM Plex Sans',sans-serif;color:#eeede9;text-wrap:pretty">El Sinker mantiene movimiento y comando en ambos entornos.</p>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,0.07)"></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="display:flex;align-items:center;gap:8px;font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:50%;background:oklch(0.7 0.19 29)"></span>Primary Risk</span>
+            <p style="margin:0;font:500 16px/1.4 'IBM Plex Sans',sans-serif;color:#eeede9;text-wrap:pretty">Four-Seam y Slider pierden movimiento vertical en Extreme Altitude.</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.4fr) auto;align-items:center;gap:24px;padding:18px 32px;border-top:1px solid rgba(255,255,255,0.07);background:#15161a;border-radius:0 0 14px 14px">
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Stuff+</span><span style="font:600 26px/1 'Barlow Condensed',sans-serif;color:#eeede9">108</span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Location+</span><span style="font:600 26px/1 'Barlow Condensed',sans-serif;color:#eeede9">99</span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Pitching+</span><span style="font:600 26px/1 'Barlow Condensed',sans-serif;color:#eeede9">104</span></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Harp Helú Fit</span>
+          <span style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,0.18);color:#a2a4ab;font:500 12px/1 'IBM Plex Sans',sans-serif">Low Fit</span>
+          <span style="display:flex;align-items:center;gap:6px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#8d9097"><span style="display:flex;gap:2px"><span style="width:8px;height:3px;border-radius:1px;background:#c6c8cd"></span><span style="width:8px;height:3px;border-radius:1px;background:#c6c8cd"></span><span style="width:8px;height:3px;border-radius:1px;background:#c6c8cd"></span></span>Robust evidence</span>
+        </div>
+        <span title="Valores de demostración, no son resultados reales" style="font:500 10px/1 'IBM Plex Mono',monospace;color:#a2a4ab;border:1px dashed rgba(255,255,255,0.28);padding:3px 6px;border-radius:4px;letter-spacing:0.05em;text-transform:uppercase;cursor:help">Demo values</span>
+      </div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:24px;margin-top:32px;align-items:stretch">
+      <section style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+          <h2 style="margin:0;font:600 28px/1 'Barlow Condensed',sans-serif;color:#f3f2ee">Arsenal Overview</h2>
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:#8d9097">Datos · Temporada 2026</span>
+        </div>
+        <div style="border-radius:12px;background:#15161a;border:1px solid rgba(255,255,255,0.06)">
+          <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 118px 64px 80px 92px 112px 104px 118px;gap:8px;align-items:center;padding:0 20px;height:40px;font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.07em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.07)">
+            <span>Pitch</span><span>Usage</span><span>Stuff+</span><span>Location+</span><span>H/A Δ</span><span>Harp Helú Fit</span><span>Action</span><span>Confidence</span>
+          </div>
+          <sc-for list="{{ arsenal }}" as="a" hint-placeholder-count="4">
+            <div onMouseEnter="{{ a.enter }}" onMouseLeave="{{ a.leave }}" style="display:grid;grid-template-columns:minmax(0,1.3fr) 118px 64px 80px 92px 112px 104px 118px;gap:8px;align-items:center;padding:0 20px;height:66px;border-bottom:1px solid rgba(255,255,255,0.05);background:{{ a.bg }}">
+              <span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">{{ a.code }}</span><span style="font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9">{{ a.name }}</span></span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:56px;height:4px;border-radius:2px;background:#2a2c32;overflow:hidden;display:flex"><span style="width:{{ a.usageW }};background:#9b9da4"></span></span><span style="font:400 13px/1 'IBM Plex Mono',monospace;color:#c6c8cd">{{ a.usage }}</span></span>
+              <span style="font:500 14px/1 'IBM Plex Mono',monospace;color:#eeede9">{{ a.stuff }}</span>
+              <span style="font:400 14px/1 'IBM Plex Mono',monospace;color:#c6c8cd">{{ a.loc }}</span>
+              <span style="display:flex;align-items:center;gap:6px;font:400 14px/1 'IBM Plex Mono',monospace;color:#eeede9"><span style="font-size:9px;color:#8d9097">{{ a.arrow }}</span>{{ a.delta }}</span>
+              <div><span style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;border:{{ a.fitBorder }};color:{{ a.fitColor }};font:500 12px/1 'IBM Plex Sans',sans-serif">{{ a.fit }}</span></div>
+              <span style="display:flex;align-items:center;gap:8px;font:600 13px/1 'IBM Plex Sans',sans-serif;color:{{ a.actColor }}"><span style="width:9px;height:9px;border-radius:50%;background:{{ a.actColor }}"></span>{{ a.action }}</span>
+              <span style="display:flex;align-items:center;gap:7px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#c6c8cd"><span style="display:flex;gap:2px"><span style="width:8px;height:3px;border-radius:1px;background:{{ a.cb1 }}"></span><span style="width:8px;height:3px;border-radius:1px;background:{{ a.cb2 }}"></span><span style="width:8px;height:3px;border-radius:1px;background:{{ a.cb3 }}"></span></span>{{ a.conf }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px">
+            <span style="font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#7d8088">H/A Δ = Stuff+ en Extreme Altitude menos No Altitude. Acciones con evidencia Conditional o Uncertain son sugerencias, no instrucciones.</span>
+            <span title="Valores de demostración, no son resultados reales" style="flex:none;font:500 10px/1 'IBM Plex Mono',monospace;color:#a2a4ab;border:1px dashed rgba(255,255,255,0.28);padding:3px 6px;border-radius:4px;letter-spacing:0.05em;text-transform:uppercase;cursor:help">Demo values</span>
+          </div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+          <h2 style="margin:0;font:600 28px/1 'Barlow Condensed',sans-serif;color:#f3f2ee">Arsenal Fingerprint</h2>
+          <span style="font:400 12px/1 'IBM Plex Sans',sans-serif;color:#8d9097">Movimiento · vista del catcher</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:18px 20px;border-radius:12px;background:#15161a;border:1px solid rgba(255,255,255,0.06)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:#101114;border:1px solid rgba(255,255,255,0.07)">
+              <sc-for list="{{ layerOpts }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.onClick }}" style="height:26px;padding:0 10px;border:0;border-radius:6px;background:{{ o.bg }};color:{{ o.color }};font:500 12px/1 'IBM Plex Sans',sans-serif;cursor:pointer">{{ o.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:12px;font:400 11px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab">
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;border:1.5px dashed #9b9da4"></span>No Alt.</span>
+              <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:#e4e2dc"></span>Extreme</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-rows:280px 22px">
+            <div style="position:relative;font:400 10px/1 'IBM Plex Mono',monospace;color:#8d9097">
+              <span style="position:absolute;right:8px;top:6.25%;transform:translateY(-50%)">20</span>
+              <span style="position:absolute;right:8px;top:37.5%;transform:translateY(-50%)">10</span>
+              <span style="position:absolute;right:8px;top:68.75%;transform:translateY(-50%)">0</span>
+            </div>
+            <div style="position:relative;border-left:1px solid rgba(255,255,255,0.12);border-bottom:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.015)">
+              <div style="position:absolute;left:0;right:0;top:68.75%;border-top:1px dashed rgba(255,255,255,0.16)"></div>
+              <div style="position:absolute;top:0;bottom:0;left:50%;border-left:1px dashed rgba(255,255,255,0.16)"></div>
+              <span style="position:absolute;left:6px;top:6px;font:400 10px/1 'IBM Plex Sans',sans-serif;color:#7d8088">IVB (in) ↑</span>
+              <span style="position:absolute;right:6px;bottom:6px;font:400 10px/1 'IBM Plex Sans',sans-serif;color:#7d8088">HB (in) →</span>
+              <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+                <sc-if value="{{ d.showNA }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:{{ d.naLeft }};top:{{ d.naTop }};width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;border:1.5px dashed {{ d.naBorder }};box-sizing:border-box;opacity:{{ d.opacity }}"></div>
+                </sc-if>
+                <sc-if value="{{ d.showEA }}" hint-placeholder-val="{{ false }}">
+                  <div onMouseEnter="{{ d.enter }}" onMouseLeave="{{ d.leave }}" style="position:absolute;left:{{ d.eaLeft }};top:{{ d.eaTop }};width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;background:#e4e2dc;box-shadow:0 0 0 {{ d.ring }};opacity:{{ d.opacity }};z-index:2"></div>
+                </sc-if>
+                <span style="position:absolute;left:{{ d.lLeft }};top:{{ d.lTop }};transform:translate(16px,-50%);font:500 11px/1 'IBM Plex Mono',monospace;color:{{ d.labelColor }};white-space:nowrap;pointer-events:none;opacity:{{ d.opacity }};z-index:3">{{ d.code }}</span>
+              </sc-for>
+            </div>
+            <div></div>
+            <div style="position:relative;font:400 10px/1 'IBM Plex Mono',monospace;color:#8d9097">
+              <span style="position:absolute;top:8px;left:12.5%;transform:translateX(-50%)">−10</span>
+              <span style="position:absolute;top:8px;left:50%;transform:translateX(-50%)">0</span>
+              <span style="position:absolute;top:8px;left:87.5%;transform:translateX(-50%)">10</span>
+              
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07)">
+            <sc-for list="{{ velo }}" as="v" hint-placeholder-count="4">
+              <div onMouseEnter="{{ v.enter }}" onMouseLeave="{{ v.leave }}" style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;background:{{ v.bg }}">
+                <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#eeede9">{{ v.code }}</span>
+                <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:#c6c8cd">{{ v.velo }} <span style="color:#7d8088">mph</span></span>
+                <span style="font:400 11px/1 'IBM Plex Mono',monospace;color:#8d9097">rel {{ v.rel }} ft</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section style="margin-top:32px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <h2 style="margin:0;font:600 28px/1 'Barlow Condensed',sans-serif;color:#f3f2ee">Harp Helú Adaptation</h2>
+          <span style="font:400 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab">No Altitude vs. Extreme Altitude</span>
+        </div>
+        <span title="Valores de demostración, no son resultados reales" style="font:500 10px/1 'IBM Plex Mono',monospace;color:#a2a4ab;border:1px dashed rgba(255,255,255,0.28);padding:3px 6px;border-radius:4px;letter-spacing:0.05em;text-transform:uppercase;cursor:help">Demo values</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+        <sc-for list="{{ adapt }}" as="c" hint-placeholder-count="3">
+          <article onMouseEnter="{{ c.enter }}" onMouseLeave="{{ c.leave }}" style="display:flex;flex-direction:column;border-radius:12px;background:#15161a;border:1px solid {{ c.border }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07)">
+              <span style="display:flex;align-items:center;gap:10px"><span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">{{ c.code }}</span><span style="font:600 15px/1 'IBM Plex Sans',sans-serif;color:#eeede9">{{ c.name }}</span></span>
+              <span style="display:flex;align-items:center;gap:7px;font:600 12px/1 'IBM Plex Sans',sans-serif;color:{{ c.actColor }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.actColor }}"></span>{{ c.action }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 92px;align-items:center;padding:10px 20px 4px;font:500 10px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.07em;text-transform:uppercase">
+              <span></span><span style="text-align:right">No Altitude</span><span style="text-align:right">Extreme</span>
+            </div>
+            <sc-for list="{{ c.metrics }}" as="m" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 92px;align-items:center;height:36px;padding:0 20px;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="font:400 13px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab">{{ m.label }}</span>
+                <span style="text-align:right;font:400 13px/1 'IBM Plex Mono',monospace;color:#a2a4ab">{{ m.na }}</span>
+                <span style="display:flex;justify-content:flex-end;align-items:center;gap:6px;font:500 13px/1 'IBM Plex Mono',monospace;color:#eeede9"><span style="font-size:9px;color:#8d9097">{{ m.arrow }}</span>{{ m.ea }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 20px">
+              <span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.07em;text-transform:uppercase;margin-right:2px">Outcomes</span>
+              <sc-for list="{{ c.outcomes }}" as="o" hint-placeholder-count="2">
+                <span style="display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:6px;background:#24262c;border:1px solid rgba(255,255,255,0.08);font:500 12px/1 'IBM Plex Sans',sans-serif;color:#eeede9">{{ o.label }} <span style="font:600 13px/1 'IBM Plex Mono',monospace;color:#c6c8cd">{{ o.dir }}</span></span>
+              </sc-for>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,0.07)">
+              <span style="display:flex;align-items:center;gap:10px;font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9"><span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.07em;text-transform:uppercase">Net effect</span>{{ c.net }}</span>
+              <span style="font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#8d9097;text-wrap:pretty">{{ c.netNote }}</span>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="why" style="margin-top:32px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font:600 28px/1 'Barlow Condensed',sans-serif;color:#f3f2ee">Why?</h2>
+        <span style="font:400 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab">Factores principales detrás de cada recomendación</span>
+      </div>
+      <sc-for list="{{ why }}" as="w" hint-placeholder-count="3">
+        <article style="border-radius:12px;background:#1a1b20;border:1px solid {{ w.border }}">
+          <button onClick="{{ w.toggle }}" style="width:100%;display:grid;grid-template-columns:130px minmax(0,1fr) 170px 28px;gap:20px;align-items:center;padding:18px 24px;background:transparent;border:0;cursor:pointer;text-align:left;color:inherit">
+            <span style="display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;background:{{ w.tint }};color:{{ w.color }};font:600 12px/1 'IBM Plex Sans',sans-serif;justify-self:start"><span style="width:7px;height:7px;border-radius:50%;background:{{ w.color }}"></span>{{ w.action }}</span>
+            <span style="display:flex;align-items:center;gap:12px;min-width:0">
+              <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">{{ w.code }}</span>
+              <span style="font:600 16px/1.35 'IBM Plex Sans',sans-serif;color:#f6f5f1">{{ w.headline }}</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:8px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab"><span style="display:flex;gap:2px"><span style="width:12px;height:4px;border-radius:1px;background:{{ w.c1 }}"></span><span style="width:12px;height:4px;border-radius:1px;background:{{ w.c2 }}"></span><span style="width:12px;height:4px;border-radius:1px;background:{{ w.c3 }}"></span></span><b style="color:#eeede9;font-weight:600">{{ w.conf }}</b></span>
+            <span style="font:400 14px/1 'IBM Plex Sans',sans-serif;color:#a2a4ab;text-align:center">{{ w.chev }}</span>
+          </button>
+          <sc-if value="{{ w.open }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:20px;padding:0 24px 22px">
+              <span></span>
+              <div style="display:flex;flex-direction:column;gap:14px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07)">
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px">
+                  <sc-for list="{{ w.factors }}" as="f" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="width:28px;height:28px;flex:none;border-radius:6px;background:#24262c;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font:600 14px/1 'IBM Plex Mono',monospace;color:#eeede9">{{ f.dir }}</span>
+                      <span style="font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#d4d5d9">{{ f.text }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <p style="margin:0;font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#8d9097;text-wrap:pretty">{{ w.note }}</p>
+              </div>
+            </div>
+          </sc-if>
+        </article>
+      </sc-for>
+    </section>
+
+    <section style="margin-top:32px;border-radius:12px;background:#15161a;border:1px solid rgba(255,255,255,0.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07)">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <h2 style="margin:0;font:600 24px/1 'Barlow Condensed',sans-serif;color:#f3f2ee">Development Targets</h2>
+          <span style="font:400 13px/1 'IBM Plex Sans',sans-serif;color:#8d9097">Rangos exploratorios sugeridos por el modelo · no son recetas causales</span>
+        </div>
+        <span title="Valores de demostración, no son resultados reales" style="font:500 10px/1 'IBM Plex Mono',monospace;color:#a2a4ab;border:1px dashed rgba(255,255,255,0.28);padding:3px 6px;border-radius:4px;letter-spacing:0.05em;text-transform:uppercase;cursor:help">Demo values</span>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 120px 210px minmax(0,1.6fr) 140px;gap:16px;align-items:center;padding:0 24px;height:40px;font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.07em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.07)">
+        <span>Pitch · Variable</span><span>Current</span><span>Target Range</span><span>Expected Direction</span><span>Confidence</span>
+      </div>
+      <sc-for list="{{ targets }}" as="t" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 120px 210px minmax(0,1.6fr) 140px;gap:16px;align-items:center;padding:0 24px;height:60px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="display:flex;align-items:center;gap:10px"><span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#101114;background:#e4e2dc;padding:4px 6px;border-radius:4px">{{ t.code }}</span><span style="font:600 14px/1 'IBM Plex Sans',sans-serif;color:#eeede9">{{ t.variable }}</span></span>
+          <span style="font:400 14px/1 'IBM Plex Mono',monospace;color:#c6c8cd">{{ t.current }}</span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="font:500 10px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.05em;text-transform:uppercase">{{ t.verb }}</span><span style="font:500 14px/1 'IBM Plex Mono',monospace;color:#eeede9;white-space:nowrap">{{ t.range }}</span></span>
+          <span style="font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#d4d5d9">{{ t.direction }}</span>
+          <span style="display:flex;align-items:center;gap:7px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#c6c8cd"><span style="display:flex;gap:2px"><span style="width:8px;height:3px;border-radius:1px;background:{{ t.cb1 }}"></span><span style="width:8px;height:3px;border-radius:1px;background:{{ t.cb2 }}"></span><span style="width:8px;height:3px;border-radius:1px;background:{{ t.cb3 }}"></span></span>{{ t.conf }}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="margin-top:32px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:26px 32px;border-radius:14px;background:#1a1b20;border:1px solid rgba(255,255,255,0.08)">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:500 11px/1 'IBM Plex Sans',sans-serif;color:#8d9097;letter-spacing:0.08em;text-transform:uppercase">Siguiente paso</span>
+        <span style="font:600 20px/1.3 'IBM Plex Sans',sans-serif;color:#f6f5f1">Probar los targets de Four-Seam y Slider en contexto Extreme Altitude</span>
+      </div>
+      <button style="flex:none;height:52px;padding:0 24px;border-radius:10px;border:0;background:#d4262f;color:#fff;font:600 15px/1 'IBM Plex Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px" style-hover="background:#e0343c">Open in What-if Simulator <span style="font-size:17px">→</span></button>
+    </section>
+  </main>
+</div>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;arrivedFrom&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Recommendation Inbox&quot;,&quot;Roster table&quot;],&quot;default&quot;:&quot;Recommendation Inbox&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { envTip: false, hovered: null, layer: 'Both', open: { FF: true } };
+  ACT = {
+    Maintain: { c: 'oklch(0.76 0.15 152)', t: 'oklch(0.76 0.15 152 / 0.13)' },
+    Review: { c: 'oklch(0.84 0.15 85)', t: 'oklch(0.84 0.15 85 / 0.13)' },
+    Adjust: { c: 'oklch(0.7 0.19 29)', t: 'oklch(0.7 0.19 29 / 0.14)' }
+  };
+  FIT = {
+    'Strong Fit': { b: '1px solid rgba(255,255,255,0.6)', c: '#f1efea' },
+    'Moderate Fit': { b: '1px solid rgba(255,255,255,0.32)', c: '#d4d5d9' },
+    'Low Fit': { b: '1px solid rgba(255,255,255,0.18)', c: '#a2a4ab' },
+    'Poor Fit': { b: '1px solid rgba(255,255,255,0.1)', c: '#8d9097' }
+  };
+  CONF = { Robust: 3, Conditional: 2, Uncertain: 1 };
+  PITCHES = [
+    { code: 'FF', name: 'Four-Seam', usage: 46, stuff: 110, loc: 98, delta: -2, fit: 'Low Fit', action: 'Review', conf: 'Conditional', velo: '95.1', rel: '6.0', na: [8.6, 16.1], ea: [8.2, 14.4] },
+    { code: 'SL', name: 'Slider', usage: 27, stuff: 106, loc: 97, delta: -3, fit: 'Poor Fit', action: 'Adjust', conf: 'Robust', velo: '86.4', rel: '5.9', na: [-5.6, 1.8], ea: [-3.9, 0.4] },
+    { code: 'SI', name: 'Sinker', usage: 15, stuff: 104, loc: 101, delta: 1, fit: 'Strong Fit', action: 'Maintain', conf: 'Robust', velo: '94.2', rel: '5.9', na: [15.2, 8.1], ea: [15.0, 7.6] },
+    { code: 'CH', name: 'Changeup', usage: 12, stuff: 99, loc: 100, delta: 0, fit: 'Moderate Fit', action: 'Maintain', conf: 'Uncertain', velo: '87.0', rel: '6.0', na: [11.8, 3.4], ea: [11.2, 2.9] }
+  ];
+  ADAPT = [
+    { code: 'FF', metrics: [['Stuff+', '111', '109'], ['IVB', '16.1 in', '14.4 in', '↓'], ['HB', '8.6 in', '8.2 in', '↓']], outcomes: [['Whiff', '↓'], ['Groundball', '↑']], net: 'Conditional', netNote: 'Depende de cómo se pondere la caída de whiff frente a la mejora de groundball.' },
+    { code: 'SL', metrics: [['Stuff+', '108', '105'], ['IVB', '1.8 in', '0.4 in', '↓'], ['HB', '−5.6 in', '−3.9 in', '↓']], outcomes: [['Whiff', '↓'], ['Chase', '↓']], net: 'Unfavorable', netNote: 'Ambos componentes se mueven en la misma dirección; el efecto no depende de la ponderación.' },
+    { code: 'SI', metrics: [['Stuff+', '103', '104'], ['IVB', '8.1 in', '7.6 in', '↓'], ['HB', '15.2 in', '15.0 in', '≈']], outcomes: [['Groundball', '↑'], ['Whiff', '≈']], net: 'Favorable', netNote: 'Movimiento estable; el componente de groundball mejora ligeramente en altitud.' }
+  ];
+  WHY = [
+    { code: 'FF', headline: 'Considerar menos Four-Seam arriba de la zona en casa', factors: [['↓', 'El IVB disminuye en Extreme Altitude'], ['↓', 'El componente de whiff baja'], ['↑', 'El componente de groundball mejora'], ['≈', 'La conclusión depende de la ponderación']], note: 'Evidencia Conditional: la dirección de los factores es consistente, pero el efecto neto cambia según cómo se ponderen whiff y groundball.' },
+    { code: 'SL', headline: 'Explorar ajustes de shape del Slider para compensar la pérdida de break', factors: [['↓', 'El HB disminuye en Extreme Altitude'], ['↓', 'Los componentes de whiff y chase bajan'], ['=', 'Patrón consistente entre ventanas de muestra']], note: 'Evidencia Robust: los factores apuntan en la misma dirección y se sostienen en distintas muestras.' },
+    { code: 'SI', headline: 'Mantener el uso del Sinker vs. RHH', factors: [['≈', 'El movimiento se mantiene estable entre entornos'], ['↑', 'El componente de groundball mejora ligeramente']], note: 'Evidencia Robust: sin cambios relevantes entre No Altitude y Extreme Altitude.' }
+  ];
+  TARGETS = [
+    { code: 'FF', variable: 'IVB', current: '14.4 in', verb: 'Explore', range: '15.0–16.0 in', direction: 'Potential improvement en el componente de whiff', conf: 'Conditional' },
+    { code: 'SL', variable: 'HB', current: '−3.9 in', verb: 'Explore', range: '−5.0 a −6.0 in', direction: 'Model suggests recuperar parte del whiff y chase', conf: 'Conditional' },
+    { code: 'FF', variable: 'Velocity', current: '95.1 mph', verb: 'Maintain', range: '95–96 mph', direction: 'Sin cambio sugerido', conf: 'Robust' },
+    { code: 'FF', variable: 'Release consistency', current: '—', verb: 'Explore', range: 'Sample', direction: 'Potential improvement en estabilidad de location', conf: 'Uncertain' }
+  ];
+  hover = c => () => this.setState({ hovered: c });
+  unhover = () => this.setState({ hovered: null });
+  bars(conf, on, off) { const l = this.CONF[conf]; return { c1: l >= 1 ? on : off, c2: l >= 2 ? on : off, c3: l >= 3 ? on : off }; }
+  renderVals() {
+    const { hovered, layer, open } = this.state;
+    const by = Object.fromEntries(this.PITCHES.map(p => [p.code, p]));
+    const fmt = d => (d > 0 ? `+${d}` : d === 0 ? '0' : `−${Math.abs(d)}`);
+    const X = hb => `${((hb + 20) / 40) * 100}%`, Y = ivb => `${((22 - ivb) / 32) * 100}%`;
+    const arsenal = this.PITCHES.map(p => ({
+      ...p, usage: `${p.usage}%`, usageW: `${p.usage * 1.6}%`, delta: fmt(p.delta),
+      arrow: p.delta > 0 ? '▲' : p.delta < 0 ? '▼' : '–',
+      fitBorder: this.FIT[p.fit].b, fitColor: this.FIT[p.fit].c, actColor: this.ACT[p.action].c,
+      ...this.bars(p.conf, '#c6c8cd', '#3a3c42'),
+      bg: hovered === p.code ? 'rgba(255,255,255,0.035)' : 'transparent',
+      enter: this.hover(p.code), leave: this.unhover
+    }));
+    const dots = this.PITCHES.map(p => {
+      const hov = hovered === p.code, dim = hovered && !hov;
+      const showEA = layer !== 'No Altitude', showNA = layer !== 'Extreme Altitude';
+      const lp = showEA ? p.ea : p.na;
+      return {
+        code: p.code, showEA, showNA, size: `${Math.round(10 + p.usage * 0.3)}px`,
+        naLeft: X(p.na[0]), naTop: Y(p.na[1]), eaLeft: X(p.ea[0]), eaTop: Y(p.ea[1]),
+        lLeft: X(lp[0]), lTop: Y(lp[1]),
+        naBorder: hov ? '#ffffff' : '#9b9da4', ring: hov ? '3px #d4262f' : '2px #15161a',
+        opacity: dim ? 0.3 : 1, labelColor: hov ? '#ffffff' : '#c6c8cd',
+        enter: this.hover(p.code), leave: this.unhover
+      };
+    });
+    const velo = this.PITCHES.map(p => ({ code: p.code, velo: p.velo, rel: p.rel, bg: hovered === p.code ? '#23252a' : 'transparent', enter: this.hover(p.code), leave: this.unhover }));
+    const adapt = this.ADAPT.map(a => {
+      const p = by[a.code];
+      return {
+        code: a.code, name: p.name, action: p.action, actColor: this.ACT[p.action].c, net: a.net, netNote: a.netNote,
+        metrics: a.metrics.map(m => ({ label: m[0], na: m[1], ea: m[2], arrow: m[3] || '' })),
+        outcomes: a.outcomes.map(o => ({ label: o[0], dir: o[1] })),
+        border: hovered === a.code ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.06)',
+        enter: this.hover(a.code), leave: this.unhover
+      };
+    });
+    const why = this.WHY.map(w => {
+      const p = by[w.code], o = !!open[w.code];
+      return {
+        ...w, action: p.action, color: this.ACT[p.action].c, tint: this.ACT[p.action].t, conf: p.conf,
+        ...this.bars(p.conf, '#e4e2dc', '#34363c'), open: o, chev: o ? '▲' : '▼',
+        border: o ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+        factors: w.factors.map(f => ({ dir: f[0], text: f[1] })),
+        toggle: () => this.setState(s => ({ open: { ...s.open, [w.code]: !s.open[w.code] } }))
+      };
+    });
+    const targets = this.TARGETS.map(t => ({ ...t, ...this.bars(t.conf, '#c6c8cd', '#3a3c42') }));
+    return {
+      envTip: this.state.envTip, envOn: () => this.setState({ envTip: true }), envOff: () => this.setState({ envTip: false }),
+      showBand: (this.props.arrivedFrom ?? 'Recommendation Inbox') === 'Recommendation Inbox',
+      openFF: () => this.setState(s => ({ open: { ...s.open, FF: true } })),
+      layerOpts: ['Both', 'No Altitude', 'Extreme Altitude'].map(l => ({ label: l, bg: layer === l ? '#2c2e34' : 'transparent', color: layer === l ? '#eeede9' : '#a2a4ab', onClick: () => this.setState({ layer: l }) })),
+      arsenal, dots, velo, adapt, why, targets
+    };
+  }
+}
+</script>
+</body>
+</html>

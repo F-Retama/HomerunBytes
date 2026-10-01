@@ -16,6 +16,14 @@ mismo signo y >= 30 celdas del tipo; Condicional = mismo signo en ambas ventanas
 cruza 0; Incierto = < 30 celdas o signo distinto entre ventanas. Relevancia practica: |delta|
 >= 1 punto (umbral interno).
 
+Variantes (auditoria 2, guia 38): "fisica" = modelo de Stuff+ sin contexto de arsenal para todos
+los pitches; mide solo el efecto del aire sobre el shape propio y es el TITULAR (coincide con el
+contraste observado del mismo pitcher). "oficial" = el Stuff+ de 18 (con arsenal cuando hay
+historial); ademas penaliza que la separacion contra la recta se encoja, por lo que exagera la
+perdida de slider/changeup frente a lo observado: se reporta como sensibilidad. La identidad
+contra 18 solo se verifica en la oficial. Salidas con columna `variante`; 21_evidence_levels.csv
+es la fisica y 21_evidence_levels_oficial.csv la oficial.
+
 H1-H4: H1 = transformacion + gradiente (20) + delta por tipo. H2 = changeup/splitter frente a
 tipos basados en Magnus (diferencia de deltas con IC). H3 = evidencia de contacto de 17 y 18
 (no se fuerza en Stuff+). H4 = pendiente IVB~SpinRate por entorno en Four-Seam y ablacion de
@@ -38,6 +46,7 @@ WINDOWS = {"2024 -> 2025": [2024], "2024-2025 -> 2026": [2024, 2025]}
 PRIMARY = "2024-2025 -> 2026"
 SCALE_KEY = "scale_sin_contact_value"
 MIN_CELLS, RELEVANT, MIN_PITCHER = 30, 1.0, 100
+VARIANTS = ["fisica", "oficial"]
 MAGNUS = ["Four-Seam", "Sinker", "Slider", "Curveball", "Cutter"]
 SPEED_DIFF = ["Changeup", "Splitter"]
 
@@ -58,7 +67,8 @@ t20 = _load("altitude_physics", "20_altitude_physics.py")
 class StuffScorer:
     """Stuff+ oficial de 18 para una ventana, solo con los componentes de peso no nulo."""
 
-    def __init__(self, entry, cfg):
+    def __init__(self, entry, cfg, force_base=False):
+        self.force_base = force_base  # True = variante fisica (sin contexto de arsenal) para todos los pitches
         fam = entry["families"]["stuff"]
         self.fam, self.variants = fam, fam["variants"]
         comps = cfg["components"]
@@ -71,6 +81,8 @@ class StuffScorer:
         self.m, self.s = fam["stats"][SCALE_KEY]
 
     def score(self, frame, has_ars):
+        if self.force_base:
+            has_ars = np.zeros(len(frame), bool)
         Z = np.column_stack([sg * (t16.family_predict(self.fam["models"][c], frame, has_ars, self.variants) - mu) / sd
                              for c, sg, (mu, sd) in zip(self.comps, self.sign, self.stats)])
         return 100 + 10 * (Z @ self.w - self.m) / self.s
@@ -101,16 +113,16 @@ def group_mean(codes, weights, values, n):
         return num / den
 
 
-def run_window(label, entry, cfg, d_raw, B, rng):
-    scorer = StuffScorer(entry, cfg)
+def run_window(label, entry, cfg, d_raw, B, rng, variant="fisica"):
+    scorer = StuffScorer(entry, cfg, force_base=(variant == "fisica"))
     F = entry["future_frame"]; ars = entry["f_ars"]
-    # Identidad con los scores publicados por 18.
-    pub = pd.read_csv(BASE_DIR / "18_three_scores.csv", usecols=["window", "stuff_plus"])
-    pub = pub[pub.window == label]["stuff_plus"].to_numpy()
     base_all = scorer.score(F, ars)
-    diff = float(np.nanmax(np.abs(base_all - pub)))
-    if diff > 1e-6:
-        raise ValueError(f"{label}: el Stuff+ reconstruido no coincide con 18 (max diff {diff}).")
+    if variant == "oficial":  # identidad con los scores publicados por 18
+        pub = pd.read_csv(BASE_DIR / "18_three_scores.csv", usecols=["window", "stuff_plus"])
+        pub = pub[pub.window == label]["stuff_plus"].to_numpy()
+        diff = float(np.nanmax(np.abs(base_all - pub)))
+        if diff > 1e-6:
+            raise ValueError(f"{label}: el Stuff+ reconstruido no coincide con 18 (max diff {diff}).")
     alt = F["altitude_category"].astype(str).to_numpy()
     hist = d_raw[d_raw.year.isin(WINDOWS[label])]
     cells = t20.cells(hist, "Extreme Altitude")
@@ -205,6 +217,8 @@ def run_window(label, entry, cfg, d_raw, B, rng):
     rr = {"r_IVB": (p0["InducedVertBreak"], *ci(rep_r[:, 0])), "r_HB": (p0["HorzBreak"], *ci(rep_r[:, 1]))}
     coh_out = coh[["PitchUID", "pitcher_anon_id", "AutoPitchType", "shape_bin", "InducedVertBreak", "HorzBreak", "RelSpeed",
                    "SpinRate", "delta"]].assign(window=label, stuff_nivel_mar=base)
+    for df_ in (by_type, by_bin, pf, coh_out):
+        df_["variante"] = variant
     return by_type, by_bin, pf, groups, rr, coh_out
 
 
@@ -290,19 +304,31 @@ def main():
     if choice != "mult_global_var":
         raise ValueError(f"20 eligio {choice}; este script implementa mult_global_var como principal.")
     d_raw = t20.load_raw()
-    bts, bbs, pfs, gs, rrs, cohs = [], [], [], {}, {}, []
-    for label, entry in bundle.items():
-        print(f"\n=== {label} ===", flush=True)
-        bt, bb, pf, g, rr, co = run_window(label, entry, cfg, d_raw, args.boot, rng)
-        bts.append(bt); bbs.append(bb); pfs.append(pf); gs[label] = g; rrs[label] = rr; cohs.append(co)
-    bt, bb, pf = pd.concat(bts), pd.concat(bbs), pd.concat(pfs)
-    ev = evidence(bt)
-    bt.to_csv(BASE_DIR / "21_delta_by_pitch_type.csv", index=False); bb.to_csv(BASE_DIR / "21_delta_by_shape_bin.csv", index=False)
-    pf.to_csv(BASE_DIR / "21_delta_by_pitcher.csv", index=False); ev.to_csv(BASE_DIR / "21_evidence_levels.csv", index=False)
+    # Titular (auditoria 2, 30/09/2026): variante FISICA (sin contexto de arsenal) para todos los pitches; es la que
+    # coincide con el Stuff+ observado del mismo pitcher. La variante OFICIAL (con arsenal cuando hay historial) queda
+    # como sensibilidad: ademas del movimiento, penaliza que la separacion contra la recta se encoja.
+    bts, bbs, pfs, gs_all, rrs, cohs = [], [], [], {}, {}, []
+    for variant in VARIANTS:
+        for label, entry in bundle.items():
+            print(f"\n=== {label} · variante {variant} ===", flush=True)
+            bt_, bb_, pf_, g, rr, co = run_window(label, entry, cfg, d_raw, args.boot, rng, variant)
+            bts.append(bt_); bbs.append(bb_); pfs.append(pf_); gs_all[(variant, label)] = g; rrs[label] = rr; cohs.append(co)
+    bt_all, bb, pf_all = pd.concat(bts), pd.concat(bbs), pd.concat(pfs)
+    evs = {v: evidence(bt_all[bt_all.variante == v]).assign(variante=v) for v in VARIANTS}
+    bt_all.to_csv(BASE_DIR / "21_delta_by_pitch_type.csv", index=False); bb.to_csv(BASE_DIR / "21_delta_by_shape_bin.csv", index=False)
+    pf_all.to_csv(BASE_DIR / "21_delta_by_pitcher.csv", index=False)
+    evs["fisica"].to_csv(BASE_DIR / "21_evidence_levels.csv", index=False)
+    evs["oficial"].to_csv(BASE_DIR / "21_evidence_levels_oficial.csv", index=False)
     pd.concat(cohs).to_parquet(BASE_DIR / "21_delta_rows.parquet", index=False)
-    print("\nDelta Stuff+ (Extreme - No) por tipo, transformacion mult_global_var (IC95% bootstrap por pitcher):")
+    bt, pf, ev, gs = bt_all[bt_all.variante == "fisica"], pf_all[pf_all.variante == "fisica"], evs["fisica"], {lb: gs_all[("fisica", lb)] for lb in bundle}
+    print("\nComparacion de variantes (2026, modelado / observado mismo pitcher):")
+    print(bt_all[bt_all.window == PRIMARY].pivot_table(index="AutoPitchType", columns="variante",
+                                                       values=["delta_stuff", "delta_observado_within"]).round(2).to_string())
+    print("\nNiveles de evidencia (oficial, sensibilidad):"); print(evs["oficial"].round(3).to_string(index=False))
+    print("\nTITULAR · variante fisica · Delta Stuff+ (Extreme - No) por tipo, transformacion mult_global_var (IC95% bootstrap por pitcher):")
     print(bt.round(3).to_string(index=False))
     print("\nNiveles de evidencia:"); print(ev.round(3).to_string(index=False))
+    bb = bb[bb.variante == "fisica"]
     sig = bb[((bb.ci95_lo > 0) | (bb.ci95_hi < 0)) & (bb.n_pitchers >= 30) & (bb.delta_stuff.abs() >= RELEVANT)]
     print(f"\nShape bins con IC sin 0, >= 30 pitchers y |delta| >= 1 pt: {len(sig)} de {len(bb)} (sin correccion por comparaciones multiples)")
     print(sig.round(2).to_string(index=False))
@@ -327,7 +353,7 @@ def main():
     hy = pd.DataFrame([
         {"hipotesis": "H1: la baja densidad reduce el movimiento inducido por spin",
          "evidencia": f"Movimiento conservado (within-pitcher, r Magnus): Medium {gt.loc['Medium Altitude','r']:.3f}, Extreme {gt.loc['Extreme Altitude','r']:.3f} (No = 1); gradiente monotono en los 7 tipos; transformacion validada en temporada futura (20). Efecto en Stuff+ 2026 (modelado / observado mismo pitcher): " + "; ".join(f"{t} {bt[(bt.window == PRIMARY) & (bt.AutoPitchType == t)].delta_stuff.iloc[0]:+.2f} / {bt[(bt.window == PRIMARY) & (bt.AutoPitchType == t)].delta_observado_within.iloc[0]:+.2f}" for t in ["Four-Seam", "Sinker", "Changeup", "Slider", "Curveball"]),
-         "veredicto": "Soportada en movimiento (todos los tipos) y en Stuff+ observado para rectas; en slider/changeup/curva la perdida modelada no aparece en el neto observado"},
+         "veredicto": "Soportada en movimiento (todos los tipos). En Stuff+ (variante fisica, titular) la perdida se concentra en rectas y coincide con lo observado; con la variante de arsenal (sensibilidad) slider y changeup tambien pierden porque se penaliza que su separacion contra la recta se encoja, algo que no aparece en lo observado"},
         {"hipotesis": "H2: pitches por diferencial de velocidad pierden menos valor relativo",
          "evidencia": f"Delta Stuff+ 2026: changeup/splitter {g2['speed_diff'][0]:+.2f} vs Magnus {g2['magnus'][0]:+.2f}; diferencia {g2['diferencia'][0]:+.2f} [{g2['diferencia'][1]:+.2f}, {g2['diferencia'][2]:+.2f}]",
          "veredicto": ("Soportada en terminos relativos: pierden menos, pero no ganan" if g2["speed_diff"][0] < 0 else "Soportada") if g2["diferencia"][1] > 0 else ("Contradicha" if g2["diferencia"][2] < 0 else "No concluyente")},

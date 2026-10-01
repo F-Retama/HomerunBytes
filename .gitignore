@@ -10,4 +10,10 @@
 __pycache__/
 *.pyc
 .venv/
-.json
+
+# Dashboard: tablas generadas por 23 y estado local del usuario
+dashboard/data/
+dashboard/state/
+
+# Configuración local de herramientas
+.claude/

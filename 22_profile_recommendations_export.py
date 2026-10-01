@@ -107,19 +107,28 @@ def to_env(frame, from_env, to_env_, fac):
 
 
 def project(entry, cfg, fac):
-    sc = t21.StuffScorer(entry, cfg)
+    """Nivel = Stuff+ oficial a nivel del mar; efecto de altitud = variante fisica (titular, guia 38).
+    stuff_harp_helu = stuff_nivel_mar + delta_fisica. Se conserva la proyeccion oficial como sensibilidad."""
+    out = {}
     F = entry["future_frame"]; ars = entry["f_ars"]; alt = F["altitude_category"].astype(str).to_numpy()
-    sea, harp = np.full(len(F), np.nan), np.full(len(F), np.nan)
-    for env in ["No Altitude", "Medium Altitude", "Extreme Altitude"]:
-        m = alt == env
-        if m.any():
-            sea[m] = sc.score(to_env(F[m], env, "No Altitude", fac), ars[m])
-            harp[m] = sc.score(to_env(F[m], env, "Extreme Altitude", fac), ars[m])
-    obs = sc.score(F, ars)
+    for variant, force in [("oficial", False), ("fisica", True)]:
+        sc = t21.StuffScorer(entry, cfg, force_base=force)
+        sea, harp = np.full(len(F), np.nan), np.full(len(F), np.nan)
+        for env in ["No Altitude", "Medium Altitude", "Extreme Altitude"]:
+            m = alt == env
+            if m.any():
+                sea[m] = sc.score(to_env(F[m], env, "No Altitude", fac), ars[m])
+                harp[m] = sc.score(to_env(F[m], env, "Extreme Altitude", fac), ars[m])
+        out[variant] = (sea, harp)
+        if variant == "oficial":
+            obs = sc.score(F, ars)
+    d_fis = out["fisica"][1] - out["fisica"][0]
     return pd.DataFrame({"PitchUID": F["PitchUID"].to_numpy(), "pitcher_anon_id": F["pitcher_anon_id"].to_numpy(),
                          "AutoPitchType": F["AutoPitchType"].astype(str).to_numpy(), "altitude_category": alt,
                          "information_level": np.where(ars, "arsenal_historico", "sin_arsenal"),
-                         "stuff_observado": obs, "stuff_nivel_mar": sea, "stuff_harp_helu": harp})
+                         "stuff_observado": obs, "stuff_nivel_mar": out["oficial"][0], "stuff_harp_helu": out["oficial"][0] + d_fis,
+                         "delta_fisica": d_fis, "stuff_harp_helu_oficial": out["oficial"][1],
+                         "delta_oficial": out["oficial"][1] - out["oficial"][0]})
 
 
 def simulate_pitch(pitch, fastball=None, measured_in="No Altitude", window=VALID, _cache={}):
@@ -186,7 +195,7 @@ def main():
     lab = raw.set_index("PitchUID")
     learn, valid = frames[LEARN], frames[VALID]
     types = [t for t, g in learn[learn.alt == "Extreme Altitude"].groupby("type") if len(g) >= MIN_ROWS and g.pitcher_anon_id.nunique() >= MIN_PITCHERS]
-    drows = pd.read_parquet(BASE_DIR / "21_delta_rows.parquet"); drows = drows[drows.window == VALID]
+    drows = pd.read_parquet(BASE_DIR / "21_delta_rows.parquet"); drows = drows[(drows.window == VALID) & (drows.variante == "fisica")]
     oof = pd.read_parquet(BASE_DIR / "19_cv_oof.parquet", columns=["pitcher_anon_id", "year", "AutoPitchType", "stuff_plus"])
 
     # ---------------- D5 ----------------
@@ -260,7 +269,10 @@ def main():
 
     # ---------------- D6 ----------------
     ev = pd.read_csv(BASE_DIR / "21_evidence_levels.csv").set_index("AutoPitchType")
-    bt = pd.read_csv(BASE_DIR / "21_delta_by_pitch_type.csv"); bt = bt[bt.window == VALID].set_index("AutoPitchType")
+    bt_all = pd.read_csv(BASE_DIR / "21_delta_by_pitch_type.csv")
+    bt = bt_all[(bt_all.window == VALID) & (bt_all.variante == "fisica")].set_index("AutoPitchType")
+    bt25 = bt_all[(bt_all.window == LEARN) & (bt_all.variante == "fisica")].set_index("AutoPitchType")
+    bt_of = bt_all[(bt_all.window == VALID) & (bt_all.variante == "oficial")].set_index("AutoPitchType")
     gr = pd.read_csv(BASE_DIR / "20_altitude_gradient.csv"); gr = gr[gr.entorno == "Extreme Altitude"]
     ce = pd.read_csv(BASE_DIR / "18_contact_env_coherence.csv"); ce = ce[ce.grupo == "pitch_type"].set_index("nivel")["mean"]
     rec = []
@@ -273,18 +285,28 @@ def main():
         rz = prof[(prof.AutoPitchType == t) & (prof.resiliencia_spearman.abs() >= 0.10)]
         resil = "; ".join(f"{'mas' if r.resiliencia_spearman > 0 else 'menos'} {r.feature} pierde menos (rho {r.resiliencia_spearman:+.2f})" for r in rz.itertuples()) or "sin rasgo claro"
         lvl = e.nivel_evidencia
-        base_txt = (f"{t}: en Harp Helu pierde {abs(b.delta_stuff):.1f} puntos de Stuff+ [{b.ci95_lo:+.1f}, {b.ci95_hi:+.1f}] "
-                    f"porque el aire reduce su movimiento (IVB {dI:+.1f} in, HB {dH:+.1f} in, mismo pitcher). ")
+        d25, d_of = bt25.loc[t, "delta_stuff"], bt_of.loc[t, "delta_stuff"]
+        obs = b.delta_observado_within
+        obs_txt = "sin contraste observado suficiente" if obs != obs else f"observado en el mismo pitcher {obs:+.1f}"
+        verb = "pierde" if b.delta_stuff < 0 else "gana"
+        base_txt = (f"{t}: en Harp Helu {verb} {abs(b.delta_stuff):.1f} puntos de Stuff+ [{b.ci95_lo:+.1f}, {b.ci95_hi:+.1f}] "
+                    f"porque el aire reduce su movimiento (IVB {dI:+.1f} in, HB {dH:+.1f} in, mismo pitcher); {obs_txt}. ")
         if lvl == "Robusto":
-            txt = base_txt + ("Descontarlo al evaluar este pitch para CDMX." if abs(b.delta_stuff) >= 1 else "Efecto consistente pero pequeño.")
+            txt = base_txt + ("Modelo y observacion coinciden: descontarlo al evaluar este pitch para CDMX." if abs(b.delta_stuff) >= 1
+                              else "Efecto consistente pero pequeño.")
         elif lvl == "Condicional":
-            txt = base_txt + (f"Pero el Stuff+ observado del mismo pitcher en altitud casi no cae ({b.delta_observado_within:+.1f}): "
-                              "posible compensacion con mas spin/velocidad o diferencia de tracking. Aplicar como descuento parcial "
-                              "y revisar el pitch del candidato medido en altitud, no como criterio de exclusion.")
+            txt = base_txt + "La observacion va en la misma direccion pero con incertidumbre: usar como ajuste parcial, no como criterio de exclusion."
+        elif e.celdas_min >= 30 and max(abs(b.delta_stuff), abs(d25)) < 0.7:
+            txt = (f"{t}: efecto de altitud practicamente nulo en su Stuff+ (2026 {b.delta_stuff:+.1f}, 2025 {d25:+.1f}; {obs_txt}). "
+                   "No descontarlo.")
         else:
             txt = f"{t}: no concluir (pocas celdas within-pitcher: {int(e.celdas_min)}). Estimacion puntual {b.delta_stuff:+.1f}."
+        if abs(d_of - b.delta_stuff) >= 0.7:
+            txt += (f" Sensibilidad: con el modelo que usa el arsenal ({d_of:+.1f}) tambien se penaliza que su separacion contra la recta "
+                    "se encoja; eso no aparece en lo observado.")
         rec.append({"AutoPitchType": t, "nivel_evidencia": lvl, "delta_stuff_2026": b.delta_stuff, "ci95_lo": b.ci95_lo, "ci95_hi": b.ci95_hi,
-                    "delta_observado_within": b.delta_observado_within, "delta_ivb_in": dI, "delta_hb_in": dH,
+                    "delta_observado_within": b.delta_observado_within, "delta_2025": d25, "delta_oficial_2026": d_of,
+                    "delta_ivb_in": dI, "delta_hb_in": dH,
                     "dano_contacto_extra_runs_100": ce.get(t, np.nan), "perfil_extreme": perfil, "resiliencia": resil, "recomendacion": txt})
     rec = pd.DataFrame(rec); rec.to_csv(BASE_DIR / "22_recommendations.csv", index=False)
     print("\nRECOMENDACIONES:")
@@ -300,7 +322,7 @@ def main():
     sim = simulate_pitch({c: raw_row[c] for c in ["AutoPitchType", "PitcherThrows", "RelSpeed", "SpinRate", "SpinAxis", "RelHeight",
                                                   "RelSide", "Extension", "InducedVertBreak", "HorzBreak"]}, measured_in=str(ok["altitude_category"]))
     ref = proj[(proj.window == VALID) & (proj.PitchUID == ok["PitchUID"])].iloc[0]
-    if (abs(sim["stuff_plus_nivel_mar"] - ref.stuff_nivel_mar) > 1e-6 or abs(sim["stuff_plus_harp_helu"] - ref.stuff_harp_helu) > 1e-6
+    if (abs(sim["stuff_plus_nivel_mar"] - ref.stuff_nivel_mar) > 1e-6 or abs(sim["stuff_plus_harp_helu"] - ref.stuff_harp_helu_oficial) > 1e-6
             or abs(sim["delta_stuff_plus"]) < 1e-9):
         raise ValueError(f"simulate_pitch no reproduce la proyeccion: {sim} vs {ref.to_dict()}")
     print(f"\nsimulate_pitch verificado contra la proyeccion oficial (pitch {ok['PitchUID']}): {sim}")
