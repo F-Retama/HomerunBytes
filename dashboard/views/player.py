@@ -157,12 +157,24 @@ for col, (_, a) in zip(cols, top3.iterrows()):
     def arrow(d, tol):
         return "↓" if d < -tol else "↑" if d > tol else "≈"
     dw, dc = a.whiff_harp - a.whiff_mar, a.chase_harp - a.chase_mar
-    net = "Unfavorable" if a.delta <= -2 else "Favorable" if a.delta >= 0.5 else "Neutral"
+    # Efecto neto (guia 40): Neutral si |Δ| < 1 (umbral de relevancia de 21). Con |Δ| >= 1 es Mixed cuando hay
+    # señales en conflicto: (a) el modelo de arsenal da el signo contrario con al menos 1 punto, o (b) whiff o chase
+    # se mueven >= 0.5 pp en contra del Stuff+. Si no, Favorable / Unfavorable.
+    sgn = 1 if a.delta > 0 else -1
+    c_var = (a.delta_oficial * sgn <= -1)
+    c_comp = (dw * sgn <= -0.005) or (dc * sgn <= -0.005)
+    net = "Neutral" if abs(a.delta) < 1 else "Mixed" if (c_var or c_comp) else "Favorable" if a.delta > 0 else "Unfavorable"
+    net_note = {"Neutral": "El cambio de Stuff+ es menor a 1 punto: sin efecto práctico, aunque algún componente se mueva.",
+                "Mixed": (f"Por sí solo el pitch {'gana' if sgn > 0 else 'pierde'} {abs(a.delta):.1f}, pero frente a su recta el modelo de arsenal da "
+                          f"{a.delta_oficial:+.1f}: en altitud se encoge la separación entre ambos. No leerlo como {'ganancia' if sgn > 0 else 'pérdida'} limpia."
+                          if c_var else "Whiff y chase se mueven en sentidos opuestos: el neto esconde un componente que va en contra."),
+                "Favorable": "Stuff+, whiff y chase van en la misma dirección.", "Unfavorable": "Stuff+, whiff y chase van en la misma dirección."}[net]
     note = {"Robust": "Modelo y Stuff+ observado del mismo pitcher coinciden en su tipo de pitch.",
             "Conditional": "El Stuff+ observado del mismo pitcher en altitud va en la misma dirección, con más incertidumbre.",
             "Uncertain": "En su tipo de pitch el efecto es pequeño o hay pocas comparaciones del mismo pitcher: tomar como orientación."}[a.evidence]
-    if abs(a.delta_oficial - a.delta) >= 0.7:
+    if abs(a.delta_oficial - a.delta) >= 0.7 and not (net == "Mixed" and c_var):
         note += f" Con el modelo de arsenal (sensibilidad): {a.delta_oficial:+.1f}."
+
     if a.delta_observado == a.delta_observado:
         note += f" Este pitcher: observado {a.delta_observado:+.1f}."
     col.markdown(
@@ -173,7 +185,7 @@ for col, (_, a) in zip(cols, top3.iterrows()):
         f'<tr><td>HB</td><td class="dr-mono" style="text-align:right">{na.hb:.1f} in</td><td class="dr-mono" style="text-align:right"><b>{arrow(abs(ea.hb) - abs(na.hb), .3)} {ea.hb:.1f} in</b></td></tr></table>'
         f'<div style="margin:10px 0"><span class="dr-label">Outcomes</span> <span class="dr-pill">Whiff {arrow(dw, .002)} {100 * dw:+.1f} pp</span> '
         f'<span class="dr-pill">Chase {arrow(dc, .002)} {100 * dc:+.1f} pp</span></div>'
-        f'<div><span class="dr-label">Net effect</span> <b>{net}</b><div class="dr-note" style="margin-top:4px">{ui.esc(note)}</div></div></div>',
+        f'<div><span class="dr-label">Net effect</span> <b>{net}</b><div class="dr-note" style="margin-top:4px">{ui.esc(net_note)} {ui.esc(note)}</div></div></div>',
         unsafe_allow_html=True)
 
 # ---------------- Why? ----------------
@@ -202,13 +214,17 @@ for _, a in A[A.n >= 50].iterrows():
 st.write("")
 TG = data.load("targets"); TG = TG[(TG.year == year) & (TG.pitcher_anon_id == pid)].sort_values(["verb", "AutoPitchType"])
 rows = "".join(
-    f'<tr><td><span class="dr-code">{t.code}</span> <b>{t.variable}</b></td><td class="dr-mono">{t.current:.1f} {t.unit}</td>'
+    f'<tr><td><span class="dr-code">{t.code}</span> <b>{t.variable}</b></td><td class="dr-mono">{t.baseline:.1f} {t.unit}'
+    + ('' if t.estado == "movimiento" else '<div class="dr-note">todos los parques</div>') + '</td>'
+    + (f'<td class="dr-mono"><b>{t.harp:.1f} {t.unit}</b></td>' if t.estado == "movimiento" else '<td class="dr-note">no cambia con el parque</td>') +
     f'<td><span class="dr-note">{t.verb.upper()}</span> <b class="dr-mono">{t.zone_lo:.1f}–{t.zone_hi:.1f} {t.unit}</b></td>'
     f'<td>{ui.esc(t.direction)}</td><td>{ui.conf_bars(t.confidence)}</td></tr>' for t in TG.itertuples())
 st.markdown(
-    f'<span class="dr-h2">Development Targets</span> <span class="dr-note">&nbsp;Zonas de los pitches de Stuff+ alto en Extreme · exploratorias, no recetas causales</span>'
-    f'<div class="dr-card" style="padding:0;margin-top:10px"><table class="dr-tbl"><tr><th>Pitch · variable</th><th>Current</th><th>Target range</th>'
-    f'<th>Expected direction</th><th>Confidence</th></tr>{rows or "<tr><td colspan=5 class=dr-note>Sin rasgos del perfil para sus tipos de pitch.</td></tr>"}</table></div>',
+    f'<span class="dr-h2">Development Targets</span> <span class="dr-note">&nbsp;Zonas de los pitches de Stuff+ alto lanzados en Extreme · exploratorias, no recetas causales</span>'
+    f'<div class="dr-card" style="padding:0;margin-top:10px"><table class="dr-tbl"><tr><th>Pitch · variable</th><th>Baseline (No Altitude)</th><th>En Harp Helú</th><th>Target en Harp Helú</th>'
+    f'<th>Expected direction</th><th>Confidence</th></tr>{rows or "<tr><td colspan=6 class=dr-note>Sin rasgos del perfil para sus tipos de pitch.</td></tr>"}</table>'
+    f'<div class="dr-note" style="padding:10px 14px">Baseline = el mismo pitch a nivel del mar (igual que el Arsenal Fingerprint). El target se midió en pitches '
+    f'lanzados en altitud, así que el movimiento (IVB, HB) se compara con su valor en Harp Helú. Velocidad, spin y release no cambian con el parque.</div></div>',
     unsafe_allow_html=True)
 st.write("")
 st.markdown(f'<div class="dr-card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="dr-label">Siguiente paso</div>'

@@ -159,7 +159,13 @@ with tabs[0]:
         g = st.columns([1.3, 1])
         fig = go.Figure()
         fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(255,255,255,0.15)"))
-        for df_, name, color in [(tb, "Actual", "#9b9da4"), (ts, "Escenario", ui.ACCENT)]:
+        with g[0]:
+            show_lg = st.toggle(f"Comparar con los {ptype} más y menos efectivos de la liga en Harp Helú", value=True, key="sim_mm")
+        mm = data.movement_map(year)
+        mm = mm[(mm.AutoPitchType == ptype) & (mm.grupo != "Resto")]
+        if show_lg and len(mm):
+            ui.movement_traces(fig, mm, "harp", size=7)
+        for df_, name, color in [(tb, "Actual", "#eeede9"), (ts, "Escenario", ui.ACCENT)]:
             d = df_.set_index("env")
             fig.add_trace(go.Scatter(x=d.HB, y=d.IVB, mode="lines", line=dict(color=color, dash="dot", width=1.5), showlegend=False, hoverinfo="skip"))
             fig.add_trace(go.Scatter(x=[d.loc["No Altitude", "HB"]], y=[d.loc["No Altitude", "IVB"]], mode="markers", name=f"{name} · nivel del mar",
@@ -171,12 +177,17 @@ with tabs[0]:
                           xaxis=dict(title="HB (in) · + lado del brazo", gridcolor="rgba(255,255,255,0.05)", zeroline=False),
                           yaxis=dict(title="IVB (in)", gridcolor="rgba(255,255,255,0.05)", zeroline=False))
         g[0].plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        if show_lg and len(mm):
+            g[0].markdown('<div class="dr-note">● azul / ✕ naranja = quintil alto / bajo de Stuff+ en Harp Helú entre los pitchers de la liga con ese tipo '
+                          '(≥ 50 pitches), con su movimiento en Harp Helú. Compáralos con el marcador relleno del pitch.</div>', unsafe_allow_html=True)
         warn = E.out_of_range(scen)
         dh = ss.loc["Extreme Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
+        loss = hh.loc["No Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
+        loss_txt = (f"pierde {loss:.1f} de Stuff+" if loss >= 0.05 else f"gana {-loss:.1f} de Stuff+" if loss <= -0.05 else "conserva su Stuff+")
         msg = (f'<div class="dr-label">Lectura</div><div style="font:600 14px/1.45 IBM Plex Sans;margin:8px 0 12px">'
                + (f"Con los cambios en {', '.join(changed).lower()}, el Stuff+ en Harp Helú pasa de {hh.loc['Extreme Altitude', 'stuff_plus']:.1f} a "
                   f"{ss.loc['Extreme Altitude', 'stuff_plus']:.1f} ({dh:+.1f})." if changed else
-                  f"El mismo pitch pierde {hh.loc['No Altitude', 'stuff_plus'] - hh.loc['Extreme Altitude', 'stuff_plus']:.1f} de Stuff+ al pasar del nivel del mar "
+                  f"El mismo pitch {loss_txt} al pasar del nivel del mar "
                   f"a Harp Helú (IVB {hh.loc['No Altitude', 'IVB']:.1f} → {hh.loc['Extreme Altitude', 'IVB']:.1f} in). Mueve los controles para explorar ajustes.")
                + f'</div><div style="margin-bottom:10px">{ui.conf_bars(evidence)}</div>'
                + ("" if sens is None else f'<div class="dr-note">Sensibilidad · efecto de altitud con el modelo de arsenal: {sens:+.1f} '

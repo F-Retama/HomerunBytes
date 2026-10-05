@@ -43,7 +43,7 @@ with top[1]:
 SL = data.get_shortlist()
 if st.session_state.get("sl_msg"):
     st.toast(st.session_state.pop("sl_msg"), icon="✅")
-tabs = st.tabs(["Perfil ideal", "Explorar liga", "Evaluar prospecto", "Comparar", f"Shortlist ({len(SL)})"])
+tabs = st.tabs(["Perfil ideal", "Explorar liga", "Evaluar prospecto", "Comparar", f"Shortlist ({len(SL)})", "Arsenal ideal"])
 
 
 def hist_spark(pid):
@@ -91,18 +91,123 @@ with tabs[0]:
             sc = 100 if r.feature == "pitch_usage_pct" else 1
             arrow = "más" if r.lift_extreme_2025 > 0 else "menos"
             res = "" if r.resiliencia_spearman != r.resiliencia_spearman or abs(r.resiliencia_spearman) < 0.1 else \
-                f'{"más" if r.resiliencia_spearman > 0 else "menos"} {lab.lower()} → pierde menos (ρ {r.resiliencia_spearman:+.2f})'
+                f'{"más" if r.resiliencia_spearman > 0 else "menos"} {lab.lower()} → pierde menos de lo esperado (ρ {r.resiliencia_spearman:+.2f})'
             rows.append(f'<tr style="{"" if r.en_perfil else "opacity:.45"}"><td><b>{lab}</b></td>'
                         f'<td class="dr-mono">{"<b>" if r.en_perfil else ""}{r.zona_p25 * sc:.1f}–{r.zona_p75 * sc:.1f} {unit}{"</b>" if r.en_perfil else ""}</td>'
                         f'<td class="dr-mono">{r.mediana_tipo * sc:.1f}</td><td>{arrow} <span class="dr-note dr-mono">lift {r.lift_extreme_2025:+.2f} → {r.lift_extreme_2026:+.2f}</span></td>'
                         f'<td>{ui.esc(r.entorno) if r.en_perfil else "<span class=dr-note>no cumple criterio</span>"}</td><td class="dr-note">{ui.esc(res)}</td></tr>')
         st.markdown(f'<div class="dr-card" style="padding:0;margin-top:14px"><div style="padding:14px 18px"><span class="dr-h2">Perfil físico ideal</span> '
                     f'<span class="dr-note">&nbsp;zona P25–P75 de los {t} de Stuff+ alto lanzados en Extreme (aprendido en 2025, confirmado en 2026)</span></div>'
-                    f'<table class="dr-tbl"><tr><th>Rasgo</th><th>Zona ideal</th><th>Mediana del tipo</th><th>Dirección</th><th>Entorno</th><th>Resiliencia a la altitud</th></tr>'
+                    f'<table class="dr-tbl"><tr><th>Rasgo</th><th>Zona ideal</th><th>Mediana del tipo</th><th>Dirección</th><th>Entorno</th><th>Resiliencia a la altitud (ajustada por nivel)</th></tr>'
                     f'{"".join(rows)}</table><div class="dr-note" style="padding:10px 14px">En negritas, los rasgos que cumplen el criterio (|lift| ≥ 0.10, IC sin 0 y '
                     f'mismo signo en 2026). "Compartido con nivel del mar" = también distingue a los mejores lejos de la altitud. Resiliencia = correlación del '
-                    f'rasgo con el Δ de altitud (positivo = pierde menos). Perfiles exploratorios: describen el modelo y se validan con whiff y chase reales.</div></div>',
+                    f'rasgo con lo que el pitch pierde de más o de menos frente a lo esperado para su Stuff+ a nivel del mar y su tipo '
+                    f'(no con los puntos brutos que pierde: los mejores pitches siempre pierden más). Perfiles exploratorios: describen el modelo y se validan con whiff y chase reales.</div></div>',
                     unsafe_allow_html=True)
+
+        # ---- Mapa de movimiento: más vs. menos efectivos ----
+        MM = data.movement_map(year)
+        mt = MM[MM.AutoPitchType == t]
+        st.markdown(f'<div style="margin-top:22px"><span class="dr-h2">Mapa de movimiento</span> <span class="dr-note">&nbsp;{t} de la liga en {year}: '
+                    f'los más y los menos efectivos en Harp Helú</span></div>', unsafe_allow_html=True)
+        if (mt.grupo != "Resto").sum() < 6:
+            st.info(f"No hay suficientes {t} (pitcher × tipo con ≥ 50 pitches) para separar los más y los menos efectivos.")
+        else:
+            mc = st.columns([2.2, 1], gap="large")
+            with mc[0]:
+                env_lab = st.segmented_control("Movimiento en", ["Harp Helú", "Nivel del mar"], default="Harp Helú", key="mm_env") or "Harp Helú"
+                env_k = "harp" if env_lab == "Harp Helú" else "mar"
+                fig = ui.movement_layout(ui.movement_traces(go.Figure(), mt, env_k, size=10))
+                for grp in ["Más efectivos", "Menos efectivos"]:
+                    g_ = mt[mt.grupo == grp]
+                    fig.add_trace(go.Scatter(x=[g_[f"hb_{env_k}"].mean()], y=[g_[f"ivb_{env_k}"].mean()], mode="markers", name=f"Centro · {grp.lower()}",
+                                             marker=dict(size=20, symbol="diamond-open", color=ui.GROUP_COLOR[grp], line=dict(width=3)), hoverinfo="skip"))
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            hi_, lo_ = mt[mt.grupo == "Más efectivos"], mt[mt.grupo == "Menos efectivos"]
+            cmp_rows = "".join(
+                f'<tr><td>{lab}</td><td class="dr-mono" style="color:{ui.GROUP_COLOR["Más efectivos"]}"><b>{fmt.format(hi_[c].mean())}</b></td>'
+                f'<td class="dr-mono" style="color:{ui.GROUP_COLOR["Menos efectivos"]}">{fmt.format(lo_[c].mean())}</td>'
+                f'<td class="dr-mono">{fmt.replace("{:", "{:+").format(hi_[c].mean() - lo_[c].mean())}</td></tr>'
+                for lab, c, fmt in [("Stuff+ en Harp Helú", "stuff_harp", "{:.1f}"), ("Velocidad (mph)", "velo", "{:.1f}"), ("IVB en Harp Helú (in)", "ivb_harp", "{:.1f}"),
+                                    ("HB en Harp Helú (in)", "hb_harp", "{:.1f}"), ("IVB a nivel del mar (in)", "ivb_mar", "{:.1f}"),
+                                    ("Spin (rpm)", "spin", "{:.0f}"), ("Δ altitud (Stuff+)", "delta", "{:.1f}")])
+            mc[1].markdown(f'<div class="dr-card" style="padding:0;margin-top:44px"><table class="dr-tbl"><tr><th></th><th>Más efectivos</th><th>Menos efectivos</th>'
+                           f'<th>Diferencia</th></tr>{cmp_rows}</table><div class="dr-note" style="padding:10px 14px">Cada marca es un pitcher × tipo con ≥ 50 '
+                           f'pitches ({len(mt)} en total). Más / menos efectivos = quintil alto / bajo de Stuff+ proyectado en Harp Helú dentro del tipo '
+                           f'({len(hi_)} y {len(lo_)}). Movimiento en convención de diestro; en Harp Helú es el observado si hay ≥ 20 pitches allí y si no el '
+                           f'proyectado. Promedios simples por pitcher.</div></div>', unsafe_allow_html=True)
+
+# =============== Arsenal ideal ===============
+with tabs[5]:
+    if not data.has("arsenal_composicion"):
+        st.info("Falta la tabla de arsenales. Corre `python 24_arsenal_harp.py` desde la raíz del repo.")
+    else:
+        AC, AR, AM = data.load("arsenal_composicion"), data.load("arsenal_rectas"), data.load("arsenal_mezcla")
+        AT, ATOP = data.load("arsenal_tipos"), data.load("arsenal_top")
+        ac, ar, at_, atop = AC[AC.year == year], AR[AR.year == year], AT[AT.year == year].set_index("AutoPitchType"), ATOP[ATOP.year == year]
+        if not len(ac):
+            st.info(f"Sin datos de arsenal para {year}.")
+        else:
+            am = AM[AM.year == year].iloc[0]
+            sl_ = ar[ar.grupo.str.startswith("Pendiente")].set_index("grupo")
+            s_mar, s_harp, s_d = (sl_.loc[k] for k in sl_.index)
+            best = ac.iloc[0]
+            st.markdown(
+                f'<div class="dr-card"><div class="dr-label">¿Qué arsenal produce el Stuff+ más alto en Harp Helú? · {year}</div>'
+                f'<div style="font:600 15px/1.5 IBM Plex Sans;margin-top:8px">El que depende menos de la recta y la acompaña con pitches que el aire casi no toca '
+                f'(slider, cutter, changeup). Cada +10 puntos porcentuales de rectas (Four-Seam + Sinker) cuestan {abs(s_d.delta):.2f} de Stuff+ adicionales en '
+                f'Harp Helú [{s_d.ci95_lo:+.2f}, {s_d.ci95_hi:+.2f}]; a nivel del mar el porcentaje de rectas no cambia el Stuff+ '
+                f'({s_mar.delta:+.2f} [{s_mar.ci95_lo:+.2f}, {s_mar.ci95_hi:+.2f}]).</div>'
+                f'<div class="dr-note" style="margin-top:8px">Aun así, la mezcla de tipos explica solo {am.r2_mezcla_harp:.0%} de las diferencias de Stuff+ entre '
+                f'pitchers en Harp Helú ({am.r2_mezcla_nivel_mar:.0%} a nivel del mar): pesa más la calidad de cada pitch que el repertorio. '
+                f'Descriptivo, no causal: quién lanza qué repertorio no es aleatorio, y el Stuff+ califica cada pitch por separado '
+                f'(no mide cuánto ayuda la recta a que funcionen los demás).</div></div>', unsafe_allow_html=True)
+            c = st.columns([1.25, 1], gap="large")
+            with c[0]:
+                st.markdown('<div style="margin-top:14px"><span class="dr-h2">Stuff+ en Harp Helú por composición del arsenal</span> '
+                            '<span class="dr-note">&nbsp;tipos con uso ≥ 10% · composiciones con ≥ 10 pitchers</span></div>', unsafe_allow_html=True)
+                o = ac.sort_values("stuff_harp")
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=o.stuff_mar, y=o.composicion, mode="markers", name="Nivel del mar",
+                                         marker=dict(size=11, color="rgba(0,0,0,0)", line=dict(color="#9b9da4", width=2))))
+                fig.add_trace(go.Scatter(x=o.stuff_harp, y=o.composicion, mode="markers", name="Harp Helú (IC 95%)",
+                                         marker=dict(size=12, color=ui.ACCENT), error_x=dict(type="data", symmetric=False, array=o.ci95_hi - o.stuff_harp,
+                                                                                            arrayminus=o.stuff_harp - o.ci95_lo, color="rgba(212,38,47,.5)", thickness=1.5),
+                                         customdata=o.n_pitchers, hovertemplate="%{y}<br>Harp Helú %{x:.1f} · %{customdata} pitchers<extra></extra>"))
+                fig.update_layout(height=60 + 30 * len(o), margin=dict(l=10, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
+                                  font=dict(family="IBM Plex Sans", color=ui.DIM, size=11), legend=dict(font=dict(size=10), orientation="h", y=1.06, x=0),
+                                  xaxis=dict(title="Stuff+ del arsenal (ponderado por uso, promedio de pitchers)", gridcolor="rgba(255,255,255,0.05)"),
+                                  yaxis=dict(tickfont=dict(family="IBM Plex Mono", size=11, color=ui.TEXT),
+                                             ticktext=[f"{r.composicion}  ·  n {r.n_pitchers}" for r in o.itertuples()], tickvals=o.composicion))
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                pv = AC.pivot(index="composicion", columns="year", values="stuff_harp").dropna()
+                stab = f" Entre temporadas el orden se conserva a medias (Spearman {pv.corr(method='spearman').iloc[0, 1]:.2f}, {len(pv)} composiciones)." if pv.shape[1] >= 2 and len(pv) >= 5 else ""
+                st.markdown(f'<div class="dr-note">Los intervalos se traslapan: las composiciones intermedias no se distinguen entre sí.{stab} '
+                            f'Lo estable son los extremos y el efecto del porcentaje de rectas.</div>', unsafe_allow_html=True)
+            with c[1]:
+                q = ar[~ar.grupo.str.startswith("Pendiente")]
+                qrows = "".join(f'<tr><td>{r.grupo}</td><td class="dr-mono">{r.pct_rectas:.0f}%</td><td class="dr-mono">{r.stuff_mar:.1f}</td>'
+                                f'<td class="dr-mono"><b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td></tr>' for r in q.itertuples())
+                st.markdown(f'<div class="dr-card" style="padding:0;margin-top:14px"><div style="padding:12px 16px"><span class="dr-h2">Dependencia de la recta</span></div>'
+                            f'<table class="dr-tbl"><tr><th>Cuartil</th><th>% rectas</th><th>Stuff+ mar</th><th>Stuff+ Harp</th><th>Δ</th></tr>{qrows}</table>'
+                            f'<div class="dr-note" style="padding:10px 14px">Pendiente en Harp Helú por +10 pp de rectas: {s_harp.delta:+.2f} '
+                            f'[{s_harp.ci95_lo:+.2f}, {s_harp.ci95_hi:+.2f}] de Stuff+. {int(q.n_pitchers.sum())} pitchers con ≥ 100 pitches.</div></div>',
+                            unsafe_allow_html=True)
+                trows = "".join(f'<tr><td><span class="dr-code">{ui.CODE[k]}</span> {k}</td><td class="dr-mono">{r.stuff_mar:.1f}</td>'
+                                f'<td class="dr-mono"><b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td></tr>'
+                                for k, r in at_.sort_values("stuff_harp", ascending=False).iterrows())
+                st.markdown(f'<div class="dr-card" style="padding:0;margin-top:12px"><div style="padding:12px 16px"><span class="dr-h2">Bloques del arsenal</span> '
+                            f'<span class="dr-note">&nbsp;Stuff+ medio de liga por tipo</span></div>'
+                            f'<table class="dr-tbl"><tr><th>Tipo</th><th>Nivel del mar</th><th>Harp Helú</th><th>Δ</th></tr>{trows}</table></div>', unsafe_allow_html=True)
+            trs = "".join(f'<tr><td><a target="_self" href="player?pid={r.pitcher_anon_id}&season={year}"><b>{ui.pid_label(r.pitcher_anon_id)}</b></a>'
+                          f'<div class="dr-note">{r.role} · {r.hand} · n {int(r.n)}</div></td><td class="dr-mono">{r.usos}</td><td class="dr-mono">{r.pct_rectas:.0f}%</td>'
+                          f'<td class="dr-mono">{r.stuff_mar:.1f} → <b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td>'
+                          f'<td class="dr-mono">{r.mezcla_harp:.1f}</td><td class="dr-mono">{r.calidad_harp:+.1f}</td></tr>' for r in atop.itertuples())
+            st.markdown(f'<div class="dr-card" style="padding:0;margin-top:14px"><div style="padding:12px 16px"><span class="dr-h2">Los 10 arsenales con mayor Stuff+ en Harp Helú</span> '
+                        f'<span class="dr-note">&nbsp;pitchers con ≥ 300 pitches en {year}</span></div>'
+                        f'<table class="dr-tbl"><tr><th>Pitcher</th><th>Arsenal (uso)</th><th>% rectas</th><th>Stuff+ mar → Harp</th><th>Δ</th><th>Mezcla</th><th>Calidad</th></tr>'
+                        f'{trs}</table><div class="dr-note" style="padding:10px 14px">Mezcla = Stuff+ que tendría en Harp Helú si cada pitch suyo fuera el promedio de liga '
+                        f'de su tipo. Calidad = lo que agregan sus pitches sobre ese promedio. Stuff+ Harp = mezcla + calidad.</div></div>', unsafe_allow_html=True)
 
 # =============== Explorar liga ===============
 with tabs[1]:

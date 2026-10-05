@@ -115,3 +115,28 @@ def add_to_shortlist(entries):
     cur += [e for e in entries if e["key"] not in keys]
     save_shortlist(cur)
     return len(cur)
+
+
+def has(name):
+    return (DATA / f"{name}.parquet").exists()
+
+
+def movement_map(year, min_n=50, q=0.20):
+    """Mapa de movimiento de la liga: una fila por pitcher x tipo (>= min_n pitches) con su movimiento a
+    nivel del mar y en Harp Helú (convención de diestro) y su grupo de efectividad: quintil alto o bajo
+    de Stuff+ proyectado en Harp Helú dentro de su tipo de pitch."""
+    a = load("arsenal")
+    a = a[(a.year == year) & (a.n >= min_n) & a.stuff_harp.notna()]
+    f = load("fingerprint")
+    f = f[f.year == year].pivot_table(index=["pitcher_anon_id", "AutoPitchType"], columns="env", values=["ivb", "hb"])
+    f.columns = [f"{v}_{'harp' if e == 'Extreme Altitude' else 'mar'}" for v, e in f.columns]
+    d = a.merge(f.reset_index(), on=["pitcher_anon_id", "AutoPitchType"], how="inner")
+    d["grupo"] = "Resto"
+    for _t, g in d.groupby("AutoPitchType"):
+        if len(g) < 20:
+            continue
+        lo, hi = g.stuff_harp.quantile([q, 1 - q])
+        d.loc[g.index[g.stuff_harp >= hi], "grupo"] = "Más efectivos"
+        d.loc[g.index[g.stuff_harp <= lo], "grupo"] = "Menos efectivos"
+    return d[["pitcher_anon_id", "AutoPitchType", "n", "usage", "velo", "spin", "stuff_mar", "stuff_harp", "delta",
+              "ivb_mar", "hb_mar", "ivb_harp", "hb_harp", "grupo"]]

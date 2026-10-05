@@ -204,19 +204,28 @@ def main():
         sel = lambda fr, env: fr[(fr.type == t) & (fr.alt == env)]
         L, V, Nn = lifts(sel(learn, "Extreme Altitude"), "stuff_plus", args.boot, rng), lifts(sel(valid, "Extreme Altitude"), "stuff_plus", args.boot, rng), lifts(sel(learn, "No Altitude"), "stuff_plus", args.boot, rng)
         dt = drows[drows.AutoPitchType == t].merge(valid[["PitchUID"] + [c for c in FEATURES if c not in drows]], on="PitchUID", how="left")
+        # Resiliencia ajustada por nivel (auditoria 2): exceso = delta - E[delta | Stuff+ a nivel del mar, tipo],
+        # con la esperanza estimada por ventiles de Stuff+ dentro del tipo. Asi no se premia a un pitch mediocre
+        # solo porque "tenia menos que perder" (los pitches con mas Stuff+ pierden mas puntos en terminos absolutos).
+        dt["exceso"] = np.nan
+        okx = dt["delta"].notna() & dt["stuff_nivel_mar"].notna()
+        if okx.sum() >= 200:
+            qx = pd.qcut(dt.loc[okx, "stuff_nivel_mar"], 20, labels=False, duplicates="drop")
+            dt.loc[okx, "exceso"] = dt.loc[okx, "delta"] - dt.loc[okx, "delta"].groupby(qx).transform("mean")
         for j, f in enumerate(FEATURES):
             sig = (L["lo"][j] > 0 or L["hi"][j] < 0) and abs(L["point"][j]) >= MIN_LIFT
             rep = np.sign(V["point"][j]) == np.sign(L["point"][j]) and (V["lo"][j] > 0 or V["hi"][j] < 0)
             no_sig = Nn["lo"][j] > 0 or Nn["hi"][j] < 0
-            ok = dt[[f, "delta"]].dropna()
-            res = spearmanr(ok[f], ok["delta"])[0] if len(ok) > 50 else np.nan
+            ok = dt[[f, "delta", "exceso"]].dropna()
+            res = spearmanr(ok[f], ok["exceso"])[0] if len(ok) > 50 else np.nan
+            res_bruto = spearmanr(ok[f], ok["delta"])[0] if len(ok) > 50 else np.nan
             prof.append({"AutoPitchType": t, "feature": f, "lift_extreme_2025": L["point"][j], "lift_lo": L["lo"][j], "lift_hi": L["hi"][j],
                          "lift_extreme_2026": V["point"][j], "lift_2026_lo": V["lo"][j], "lift_2026_hi": V["hi"][j],
                          "lift_no_altitude_2025": Nn["point"][j], "en_perfil": bool(sig and rep),
                          "entorno": ("compartido con nivel del mar" if no_sig and np.sign(Nn["point"][j]) == np.sign(L["point"][j]) else
                                      "opuesto en nivel del mar" if no_sig else "especifico de altitud") if sig and rep else "",
                          "zona_p25": L["zone"].loc[.25, f], "zona_p50": L["zone"].loc[.5, f], "zona_p75": L["zone"].loc[.75, f],
-                         "mediana_tipo": L["median_all"][f], "resiliencia_spearman": res,
+                         "mediana_tipo": L["median_all"][f], "resiliencia_spearman": res, "delta_bruto_spearman": res_bruto,
                          "n_learn": L["n"], "n_pitchers_learn": L["n_pitchers"]})
         # Validacion con resultados reales en Extreme 2026.
         v = sel(valid, "Extreme Altitude")
@@ -240,8 +249,8 @@ def main():
     stab.to_csv(BASE_DIR / "22_stuff_stability_by_type.csv", index=False)
     print("PERFIL (Extreme; caracteristicas que entran al perfil):")
     print(prof[prof.en_perfil][["AutoPitchType", "feature", "lift_extreme_2025", "lift_extreme_2026", "zona_p25", "zona_p75", "mediana_tipo", "entorno", "resiliencia_spearman"]].round(3).to_string(index=False))
-    print("\nResiliencia (Spearman caracteristica vs delta; + = menos perdida), |rho| >= 0.10:")
-    print(prof[prof.resiliencia_spearman.abs() >= 0.10][["AutoPitchType", "feature", "resiliencia_spearman"]].round(3).to_string(index=False))
+    print("\nResiliencia ajustada por nivel (Spearman caracteristica vs exceso; + = pierde menos de lo esperado), |rho| >= 0.10:")
+    print(prof[prof.resiliencia_spearman.abs() >= 0.10][["AutoPitchType", "feature", "resiliencia_spearman", "delta_bruto_spearman"]].round(3).to_string(index=False))
     print("\nValidacion con resultados reales en Extreme 2026 (quintil alto - bajo de Stuff+, pp):")
     print(val.round(2).to_string(index=False))
     print("\nEstabilidad de Stuff+ por tipo (pitcher x tipo, >= 50 pitches):"); print(stab.round(3).to_string(index=False))
@@ -283,7 +292,7 @@ def main():
         p_ = prof[(prof.AutoPitchType == t) & prof.en_perfil]
         perfil = "; ".join(f"{r.feature} {r.zona_p25:.1f} a {r.zona_p75:.1f} (mediana del tipo {r.mediana_tipo:.1f})" for r in p_.itertuples()) or "sin caracteristica que cumpla el criterio"
         rz = prof[(prof.AutoPitchType == t) & (prof.resiliencia_spearman.abs() >= 0.10)]
-        resil = "; ".join(f"{'mas' if r.resiliencia_spearman > 0 else 'menos'} {r.feature} pierde menos (rho {r.resiliencia_spearman:+.2f})" for r in rz.itertuples()) or "sin rasgo claro"
+        resil = "; ".join(f"{'mas' if r.resiliencia_spearman > 0 else 'menos'} {r.feature} pierde menos de lo esperado para su nivel (rho {r.resiliencia_spearman:+.2f})" for r in rz.itertuples()) or "sin rasgo claro"
         lvl = e.nivel_evidencia
         d25, d_of = bt25.loc[t, "delta_stuff"], bt_of.loc[t, "delta_stuff"]
         obs = b.delta_observado_within
@@ -330,7 +339,7 @@ def main():
              "21_delta_by_pitch_type.csv", "21_delta_by_shape_bin.csv", "21_evidence_levels.csv", "21_hypotheses.csv", "21_transform_r.json",
              "22_pitch_type_profiles.csv", "22_recommendations.csv", "22_pitcher_projection.csv", "22_pitcher_arsenal_projection.csv",
              "22_pitch_projection.parquet", "17_contact_by_altitude.csv", "19_exit_table.csv"]
-    man = {"congelado": "2026-09-26", "ventana_modelo_dashboard": VALID, "escala": "Stuff+ = 100 + 10 z (referencia: historial 2024-2025)",
+    man = {"modelos_congelados": "2026-09-26", "outputs_regenerados": pd.Timestamp.today().strftime("%Y-%m-%d"), "ventana_modelo_dashboard": VALID, "escala": "Stuff+ = 100 + 10 z (referencia: historial 2024-2025)",
            "factores_movimiento_vs_No_Altitude": fac[VALID], "entorno_proxy_harp_helu": "Extreme Altitude",
            "simulador": "22_profile_recommendations_export.simulate_pitch",
            "archivos": {f: hashlib.sha256(open(BASE_DIR / f, "rb").read()).hexdigest() for f in files if (BASE_DIR / f).exists()}}

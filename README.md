@@ -47,6 +47,7 @@ python 20_altitude_physics.py
 python 21_altitude_stuff_delta.py
 python 22_profile_recommendations_export.py
 python 23_dashboard_data.py
+python 24_arsenal_harp.py
 ```
 
 | Archivo | Qué hace |
@@ -74,6 +75,7 @@ python 23_dashboard_data.py
 | `21_altitude_stuff_delta.py` | **Bloque D (D3–D4).** ΔStuff+ de altitud con el Stuff+ limpio (bootstrap por pitcher, chequeo inverso, sensibilidad a la forma y contraste observado del mismo pitcher), niveles de evidencia y tabla H1–H4. Genera `21_*.csv`, `21_delta_rows.parquet` y `21_transform_r.json`. Guía 36. |
 | `22_profile_recommendations_export.py` | **Bloque D (D5–D7).** Perfil físico ideal en altitud desde el Stuff+ limpio (validado contra whiff/chase reales), recomendaciones por tipo, proyección de cada pitcher a nivel del mar contra Harp Helú, `simulate_pitch()` para el dashboard y manifiesto congelado `22_dashboard_manifest.json`. Guía 36. |
 | `23_dashboard_data.py` | **Dashboard: capa de datos.** Convierte los outputs congelados (17–22) en las tablas de `dashboard/data/` (pitchers, arsenal, fingerprint, inbox, targets, tendencias, equipos reconstruidos, historial). Aquí viven todas las reglas de producto (Fit, semáforo, alertas, confianza, targets). Guía 37. |
+| `24_arsenal_harp.py` | **Arsenal en Harp Helú.** Responde qué repertorio produce el Stuff+ más alto en altitud: Stuff+ por composición del arsenal, dependencia de la recta, descomposición mezcla contra calidad y los 10 mejores arsenales individuales. Lee la capa de datos de `23`. Guía 39. |
 | `explorar_datos.py` | Inspección rápida del tamaño del dataset y del diccionario. Opcional; no forma parte de la secuencia principal. |
 
 **`02` debe ejecutarse antes de `03` y `04`**, porque ambos leen el parquet que genera. Los resultados principales se imprimen en la terminal. Volver a ejecutar `02` o `04` reemplaza sus respectivos archivos generados locales.
@@ -166,6 +168,7 @@ Diseño en `Design_Thinking_Dashboard_Diablos_Rojos.md` y en los wireframes; el 
 ```bash
 python -m pip install streamlit plotly
 python 23_dashboard_data.py
+python 24_arsenal_harp.py
 streamlit run dashboard/app.py
 ```
 
@@ -182,3 +185,23 @@ El dataset es anónimo: el roster se elige entre equipos reconstruidos por co-ap
 - **Bug corregido:** el Simulator ya no falla con pitchers que solo tienen datos de 2025. Dependencias fijadas en `requirements.txt`.
 
 Detalle en la guía, sección 38.
+
+## Huecos frente al reto: arsenal y mapa de movimiento (05/10/2026)
+
+- **¿Qué arsenal produce el Stuff+ más alto en Harp Helú?** El que depende menos de la recta y la acompaña con slider o cutter. A nivel del mar el porcentaje de rectas no cambia el Stuff+; en Harp Helú cada +10 puntos porcentuales de rectas cuestan 0.57 de Stuff+ adicionales [0.45, 0.68] en 2026 (0.56 en 2025). En 2026 la composición más alta es FF+FC+SL (103.5) y la más baja es FF+SI+CU+CH, sin slider (95.8).
+- **Matiz:** la mezcla de tipos explica solo 7% de las diferencias de Stuff+ entre pitchers en Harp Helú (1% a nivel del mar). Pesa más la calidad de cada pitch que el repertorio. El análisis es descriptivo, no causal.
+- **Mapa de movimiento de los pitches más y menos efectivos:** en Scouting › Perfil ideal (por tipo) y como fondo del mapa del Simulator. Más y menos efectivos = quintil alto y bajo de Stuff+ proyectado en Harp Helú dentro de cada tipo.
+- **Dashboard:** Scouting tiene la pestaña nueva "Arsenal ideal".
+
+Detalle en la guía, sección 39.
+
+## Consistencia semántica del dashboard (05/10/2026)
+
+- **Regla transversal:** cada número pertenece a un estado explícito (No Altitude, Harp Helú o todos los parques) y nunca se mezclan en una misma comparación.
+- **Resiliencia a la altitud (Scouting):** ahora es "pierde menos o más de lo esperado para su nivel y tipo", no los puntos brutos que pierde. En el Four-Seam la velocidad pasa de −0.47 a +0.21.
+- **Development Targets (Player):** columnas "Baseline (No Altitude)" y "En Harp Helú". El movimiento se compara en Harp Helú, porque la zona objetivo se midió en pitches lanzados en altitud.
+- **Net effect (Player):** Neutral si el cambio es menor a 1 punto; Mixed si hay señales en conflicto (el modelo de arsenal da el signo contrario, o whiff o chase van en contra). En 2026, de los 37 pitches que ganan 1 punto o más en altitud por sí solos, 24 pierden 1 punto o más según el modelo de arsenal: su separación contra la recta se encoge.
+- **Whiff y chase por entorno (`23`):** ahora usan el mismo esquema que el Stuff+ proyectado (nivel oficial + efecto físico). Antes salían de la variante con arsenal y podían contradecir al Δ mostrado.
+- `Dashboard_Analisis_Factibilidad.md` y el manifiesto de `22` quedaron al día.
+
+Detalle en la guía, sección 40.

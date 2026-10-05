@@ -19,18 +19,20 @@ Contraste del documento de Design Thinking y de los wireframes (Pitching Staff, 
 
 ## 2. Definiciones necesarias (no estaban en el wireframe)
 
+> **Regla transversal (guía 40):** cada número del dashboard pertenece a un estado explícito —No Altitude, Extreme Altitude (Harp Helú) o todos los parques— y nunca se mezclan dentro de una misma comparación.
+
 Todas están implementadas en `23_dashboard_data.py`, con umbrales explícitos:
 
-- **Harp Helú Fit (pitcher):** resiliencia del arsenal a la altitud. Es el percentil del Δ altitud ponderado por uso entre pitchers con ≥ 100 pitches: Strong ≥ p75 (pierde menos), Moderate, Low, Poor < p25. **No es calidad** (la calidad es Stuff+). Por eso el mapa Stuff+ × Fit tiene dos ejes independientes.
-- **Fit por pitch:** el mismo criterio, comparando contra pitches del mismo tipo en la liga. Separa "este four-seam pierde más que otros four-seam" de "los four-seam pierden en altitud".
+- **Harp Helú Fit (pitcher):** calidad proyectada en Harp Helú *(redefinido en la auditoría 2, guía 38)*. Es el percentil del Stuff+ proyectado en Harp Helú (Stuff+ oficial a nivel del mar + Δ físico), ponderado por uso, entre pitchers con ≥ 100 pitches: Strong ≥ p75, Moderate, Low, Poor < p25. La definición original (percentil del Δ) premiaba a pitchers con poco Stuff+, porque los mejores pierden más puntos.
+- **Fit por pitch:** el mismo criterio, comparando contra pitches del mismo tipo en la liga.
 - **Confianza:** la de cada tipo sale de los niveles de evidencia de la guía 36. La del pitcher es Robust si ≥ 60% de sus pitches son de tipos robustos y tiene ≥ 300 pitches; Uncertain si < 150 pitches o ≥ 40% en tipos inciertos.
 - **Semáforo (acción por pitch):**
-  - Adjust: Δ ≤ −3.5 en un tipo robusto.
-  - Review: Δ ≤ −2.
+  - Adjust: el pitch pierde más de lo esperado para su nivel y tipo (exceso en el 10% inferior de su tipo) y el tipo tiene evidencia Robusta.
+  - Review: exceso en el 25% inferior de su tipo.
   - Maintain: el resto.
 
   Son prioridades de revisión, no instrucciones de uso.
-- **Alerta del pitcher:** la peor acción entre sus pitches con ≥ 15% de uso.
+- **Alerta del pitcher:** roja si un pitch con ≥ 15% de uso es Adjust; amarilla si un pitch con ≥ 30% de uso no es Maintain.
 
 ## 3. Pantalla por pantalla
 
@@ -40,7 +42,7 @@ Todas están implementadas en `23_dashboard_data.py`, con umbrales explícitos:
 |---|---|---|
 | KPIs (tamaño, Stuff+ medio, distribución de Fit, alertas) | ✅ | 18 (scores oficiales), 22 (proyección) |
 | Recommendation Inbox | ⚠️ | Alertas por pitcher (su pitch más afectado) y "oportunidades": pitches con Stuff+ ≥ 105 que pierden < 1.5 en altitud. **Se quitó "margen para más uso"**: el modelo no sostiene recomendaciones de pitch mix (sin política causal; el mismo documento de diseño lo excluye de V1). |
-| Harp Helú Roster Map (Stuff+ × adaptación) | ✅ | x = Stuff+; y = percentil de resiliencia (con las bandas de Fit) |
+| Harp Helú Roster Map (Stuff+ × adaptación) | ✅ | x = Stuff+; y = percentil de "pierde menos / más de lo esperado" para su nivel y tipo (guía 38) |
 | Tabla: Stuff+, Location+, Fit, Δ, alerta, tendencia | ✅ | Se agrega Pitching+ y el Δ observado como secundario |
 | Comparar (selección múltiple) | ✅ | Comparador rápido de 2 a 4 pitchers |
 | Filtros (rol, mano, acción, fit) | ✅ | Rol inferido |
@@ -54,7 +56,7 @@ Todas están implementadas en `23_dashboard_data.py`, con umbrales explícitos:
 | Arsenal Overview (uso, Stuff+, Location+, Δ, Fit, acción, confianza) | ✅ | 18, 22, 23 |
 | Arsenal Fingerprint (movimiento No vs. Extreme) | ✅ | Observado si hay ≥ 20 pitches por entorno; si no, proyectado con la transformación validada (IVB × 0.77, HB × 0.71) |
 | Harp Helú Adaptation (Stuff+, IVB, HB, outcomes) | ✅ | Outcomes = whiff y chase **modelados** con el componente físico de Stuff+ a nivel del mar contra Harp Helú |
-| "Net effect: depende de cómo se pondere whiff vs. groundball" | ❌ → reemplazado | Esa lectura era de la arquitectura V1 (pesos iguales), invalidada en la guía 32–36. El neto ahora es el Δ Stuff+, más el nivel de evidencia y el contraste observado. |
+| "Net effect: depende de cómo se pondere whiff vs. groundball" | ❌ → reemplazado | Esa lectura era de la arquitectura V1 (pesos iguales), invalidada en la guía 32–36. El neto ahora es el Δ Stuff+, más el nivel de evidencia y el contraste observado. Regla vigente (guía 40): Neutral si \|Δ\| < 1; Mixed si \|Δ\| ≥ 1 pero el modelo de arsenal da el signo contrario, o whiff o chase van en contra; Favorable / Unfavorable en el resto. |
 | Why? | ✅ | Cambio físico, componentes, contraste observado y nivel de evidencia |
 | Development Targets | ⚠️ | Zonas P25–P75 de los pitches de Stuff+ alto en Extreme (perfil de 22). "Release consistency" se quitó: no hay modelo que la ligue a resultados. Siempre exploratorios. |
 

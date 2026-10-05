@@ -1,5 +1,6 @@
 {
-  "congelado": "2026-09-26",
+  "modelos_congelados": "2026-09-26",
+  "outputs_regenerados": "2026-10-05",
   "ventana_modelo_dashboard": "2024-2025 -> 2026",
   "escala": "Stuff+ = 100 + 10 z (referencia: historial 2024-2025)",
   "factores_movimiento_vs_No_Altitude": {
@@ -25,8 +26,8 @@
     "21_evidence_levels.csv": "3087b11c3a150bb0cdf1d58c2723978e5b8e5c264b0815252f3f00cfc8fe8b3a",
     "21_hypotheses.csv": "4235328072720d6f9b38b97ca8ca58dc8bd77db32cce2773688c798f555f0996",
     "21_transform_r.json": "de48244e506ffb807a8674a0efe9fe5a5de83a59c1bd18586141886781c4e22a",
-    "22_pitch_type_profiles.csv": "8616d7c1fa982fdf1227acb6ed45ed25fad2e255fc6d1b938b54574432f49cb8",
-    "22_recommendations.csv": "40f259f74c10c8d47dd5aefd40a1e2d06ba8a33d54073195472d35e41619f109",
+    "22_pitch_type_profiles.csv": "bfdc11367dfdd2ab29d0b0b400e062bbff17d40ac0dd71e94306d0bf2861c404",
+    "22_recommendations.csv": "0f2c29eead08cded4d3dc5045d0929afccc6a2cf9df7e163c6a152e11ebcd20c",
     "22_pitcher_projection.csv": "8a6e213bd59f57ac2df6492b95f913bdb475874bac4d14a9db95d7a4d6587284",
     "22_pitcher_arsenal_projection.csv": "9534b99a892717d7a63e2e352f62c0655367bd8916d09f8b5998c53db0a6dad5",
     "22_pitch_projection.parquet": "e8b3892cd2849afa8ddcf167e10a89e39b7d23c1b5a02fe3a2162193c973fa75",

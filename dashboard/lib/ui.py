@@ -2,6 +2,7 @@
 
 import html
 
+import plotly.graph_objects as go
 import streamlit as st
 
 RED, YEL, GRN = "#f0645a", "#f2c14e", "#4fc98a"
@@ -152,3 +153,31 @@ def header(active):
 
 def html_block(s):
     st.markdown(s, unsafe_allow_html=True)
+
+
+GROUP_COLOR = {"Más efectivos": "#5aa9e6", "Menos efectivos": "#e8963c", "Resto": "rgba(255,255,255,0.13)"}
+
+
+def movement_traces(fig, d, env="harp", size=8, legend=True):
+    """Agrega a fig los pitches de la liga (una marca por pitcher x tipo) coloreados por efectividad."""
+    for grp in ["Resto", "Más efectivos", "Menos efectivos"]:
+        g = d[d.grupo == grp]
+        if not len(g):
+            continue
+        fig.add_trace(go.Scatter(
+            x=g[f"hb_{env}"], y=g[f"ivb_{env}"], mode="markers", name=f"{grp} (liga)" if grp != "Resto" else "Resto de la liga",
+            showlegend=legend, marker=dict(size=size if grp != "Resto" else size - 3, color=GROUP_COLOR[grp], opacity=0.85 if grp != "Resto" else 1,
+                                           symbol="circle" if grp != "Menos efectivos" else "x"),
+            customdata=list(zip(g.pitcher_anon_id.str.replace("pitcher_", ""), g.AutoPitchType, g.stuff_harp, g.velo, g.n)),
+            hovertemplate="Pitcher %{customdata[0]} · %{customdata[1]}<br>Stuff+ Harp Helú %{customdata[2]:.1f}<br>"
+                          "HB %{x:.1f} in · IVB %{y:.1f} in · %{customdata[3]:.1f} mph<br>n %{customdata[4]}<extra></extra>"))
+    return fig
+
+
+def movement_layout(fig, height=420):
+    fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(255,255,255,0.15)"))
+    fig.update_layout(height=height, margin=dict(l=40, r=10, t=10, b=40), paper_bgcolor=PANEL, plot_bgcolor=PANEL,
+                      font=dict(family="IBM Plex Sans", color=DIM, size=11), legend=dict(font=dict(size=10), orientation="h", y=1.08, x=0),
+                      xaxis=dict(title="HB (in) · + lado del brazo (convención de diestro)", gridcolor="rgba(255,255,255,0.05)", zeroline=False),
+                      yaxis=dict(title="IVB (in)", gridcolor="rgba(255,255,255,0.05)", zeroline=False))
+    return fig

@@ -165,7 +165,9 @@ def main():
         sc = sc.merge(pr, on="PitchUID", how="left").merge(seq, on="PitchUID", how="left")
         sc["delta"] = sc["stuff_harp_helu"] - sc["stuff_nivel_mar"]
 
-        # Componentes fisicos del Stuff+ (whiff, chase) a nivel del mar vs Harp Helu.
+        # Componentes fisicos del Stuff+ (whiff, chase) a nivel del mar vs Harp Helu, con el MISMO esquema que el
+        # Stuff+ proyectado (guia 38): nivel = variante oficial a nivel del mar; efecto de altitud = variante fisica
+        # (sin arsenal). Antes el efecto salia de la variante con arsenal y podia contradecir al delta mostrado.
         F, ars = entry["future_frame"], entry["f_ars"]
         alt = F["altitude_category"].astype(str).to_numpy()
         fam = entry["families"]["stuff"]
@@ -174,10 +176,12 @@ def main():
             m = alt == env
             if not m.any():
                 continue
-            for tgt, key in [("No Altitude", "mar"), ("Extreme Altitude", "harp")]:
-                x = t22.to_env(F[m], env, tgt, fac)
-                for c in ["whiff_per_pitch", "chase"]:
-                    comp[f"{c}_{key}"][m] = t16.family_predict(fam["models"][c], x, ars[m], fam["variants"])
+            x_mar, x_harp = t22.to_env(F[m], env, "No Altitude", fac), t22.to_env(F[m], env, "Extreme Altitude", fac)
+            no_ars = np.zeros(int(m.sum()), bool)
+            for c in ["whiff_per_pitch", "chase"]:
+                pred = lambda x, a_: t16.family_predict(fam["models"][c], x, a_, fam["variants"])
+                comp[f"{c}_mar"][m] = pred(x_mar, ars[m])
+                comp[f"{c}_harp"][m] = comp[f"{c}_mar"][m] + pred(x_harp, no_ars) - pred(x_mar, no_ars)
         compdf = pd.DataFrame(comp); compdf["PitchUID"] = F["PitchUID"].to_numpy()
         sc = sc.merge(compdf, on="PitchUID", how="left")
 
@@ -312,7 +316,19 @@ def main():
         for _, gg in a[a.n >= MIN_PITCH].iterrows():
             for _, f in pf[pf.AutoPitchType == gg.AutoPitchType].iterrows():
                 col, label, unit = feat_map[f.feature]
-                cur = gg[col]
+                # Estado explicito de cada numero: la zona del perfil se midio en pitches lanzados en Extreme, asi que
+                # el movimiento se compara en Harp Helu; baseline = el mismo pitch a nivel del mar (fingerprint).
+                # Velocidad, spin y release no cambian con el parque: promedio de todos sus pitches.
+                if col in ("ivb", "hb"):
+                    try:
+                        base = float(fpy.loc[(gg.pitcher_anon_id, gg.AutoPitchType, "No Altitude"), col])
+                        cur = float(fpy.loc[(gg.pitcher_anon_id, gg.AutoPitchType, "Extreme Altitude"), col])
+                    except KeyError:
+                        continue
+                    estado = "movimiento"
+                else:
+                    base = cur = gg[col]
+                    estado = "todos los parques"
                 if pd.isna(cur):
                     continue
                 inside = f.zona_p25 <= cur <= f.zona_p75
@@ -327,7 +343,7 @@ def main():
                     direction = (f"Los pitches de Stuff+ alto en Extreme tienen {'más' if f.lift_extreme_2025 > 0 else 'menos'} {label.lower()}: "
                                  f"{f.zona_p25:.1f}–{f.zona_p75:.1f} {unit} (lift {f.lift_extreme_2025:+.2f})")
                 targets.append({"year": year, "pitcher_anon_id": gg.pitcher_anon_id, "AutoPitchType": gg.AutoPitchType, "code": gg.code, "variable": label,
-                                "unit": unit, "current": cur, "zone_lo": f.zona_p25, "zone_hi": f.zona_p75, "verb": verb, "direction": direction,
+                                "unit": unit, "baseline": base, "harp": cur, "estado": estado, "current": cur, "zone_lo": f.zona_p25, "zone_hi": f.zona_p75, "verb": verb, "direction": direction,
                                 "confidence": "Conditional" if gg.evidence == "Robust" else gg.evidence})
 
     pd.concat(pitchers).to_parquet(OUT / "pitchers.parquet", index=False)
