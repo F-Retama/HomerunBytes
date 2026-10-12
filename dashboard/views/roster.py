@@ -55,11 +55,16 @@ fitc = P.fit.value_counts()
 tot = max(len(P), 1)
 bars = "".join(f'<div style="flex:{fitc.get(fl, 0)};height:6px;border-radius:3px;background:{c}"></div>'
                for fl, c in [("Strong Fit", "#e9e7e2"), ("Moderate Fit", "#9a9ca2"), ("Low Fit", "#5d5f65"), ("Poor Fit", "#3a3c42")] if fitc.get(fl, 0))
+# Para comparar pitchers se usa el Stuff+ equivalente a nivel del mar: el de temporada "tal como se lanzó" baja con cada pitch
+# lanzado en altitud (guía 36.3), así que penalizaría a los pitchers que lanzan de local en Extreme (regla de la guía 40.1).
+Pm = P[P.stuff_mar.notna()]
+avg_mar = np.average(Pm.stuff_mar, weights=Pm.n) if len(Pm) else float("nan")
+avg_tal = np.average(P.stuff_plus, weights=P.n) if len(P) else float("nan")
 cards = [
     f'<div class="dr-label">Roster size</div><div style="margin-top:10px"><span class="dr-kpi-v">{len(P)}</span> '
     f'<span class="dr-kpi-s">pitchers · {n_sp} SP · {n_rp} RP</span> <span class="dr-tag">ROL INFERIDO</span></div>',
-    f'<div class="dr-label">Average Stuff+</div><div style="margin-top:10px"><span class="dr-kpi-v">{np.average(P.stuff_plus, weights=P.n) if len(P) else float("nan"):.1f}</span> '
-    f'<span class="dr-kpi-s">liga = 100 · ponderado por pitches</span></div>',
+    f'<div class="dr-label">Average Stuff+ · nivel del mar</div><div style="margin-top:10px"><span class="dr-kpi-v">{avg_mar:.1f}</span> '
+    f'<span class="dr-kpi-s">liga = 100 · ponderado por pitches · temporada tal cual {avg_tal:.1f}</span></div>',
     f'<div class="dr-label">Harp Helú Fit</div><div style="display:flex;gap:4px;margin:14px 0 8px">{bars}</div>'
     f'<div class="dr-kpi-s">' + " ".join(f'<b style="color:{ui.TEXT}">{fitc.get(fl, 0)}</b> {fl.split()[0]}' for fl in ["Strong Fit", "Moderate Fit", "Low Fit", "Poor Fit"]) + '</div>',
     f'<div class="dr-label">Requieren atención</div><div style="margin-top:10px"><span class="dr-kpi-v" style="color:{ui.RED}">{int((P.alert == "red").sum())}</span> '
@@ -108,7 +113,7 @@ with left:
 with right:
     st.markdown('<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
                 '<span class="dr-h2">Harp Helú Roster Map</span><span class="dr-note">Stuff+ × adaptación vs. lo esperado</span></div>', unsafe_allow_html=True)
-    M = V[V.fit != "Sin muestra"]
+    M = V[(V.fit != "Sin muestra") & V.stuff_mar.notna()]
     fig = go.Figure()
     for y0, y1, lab in [(75, 100, "Pierde menos<br>de lo esperado"), (50, 75, ""), (25, 50, ""), (0, 25, "Pierde más<br>de lo esperado")]:
         fig.add_hrect(y0=y0, y1=y1, fillcolor="rgba(255,255,255,0.025)" if lab in ("Strong Fit", "Low Fit") else "rgba(0,0,0,0)", line_width=0)
@@ -117,19 +122,21 @@ with right:
     fig.add_vline(x=100, line=dict(color="rgba(255,255,255,0.18)", dash="dot"))
     for al, (c, lab) in ui.ALERT.items():
         m = M[M.alert == al]
-        fig.add_trace(go.Scatter(x=m.stuff_plus, y=100 * m.exceso_pct, mode="markers+text", name=lab,
+        fig.add_trace(go.Scatter(x=m.stuff_mar, y=100 * m.exceso_pct, mode="markers+text", name=lab,
                                  text=[ui.pid_label(x).replace("Pitcher ", "") for x in m.pitcher_anon_id], textposition="middle right",
                                  textfont=dict(size=10, color="#c6c8cd"),
                                  marker=dict(color=c, size=10 + np.sqrt(m.n) / 4, line=dict(color="#15161a", width=2)),
-                                 customdata=np.stack([m.pitcher_anon_id, m.delta, m.n, m.stuff_harp], axis=1) if len(m) else None,
-                                 hovertemplate="%{customdata[0]}<br>Stuff+ %{x:.1f} · en Harp Helú %{customdata[3]:.1f}<br>Δ altitud %{customdata[1]:+.1f}<br>n %{customdata[2]}<extra></extra>"))
+                                 customdata=np.stack([m.pitcher_anon_id, m.delta, m.n, m.stuff_harp, m.stuff_plus], axis=1) if len(m) else None,
+                                 hovertemplate="%{customdata[0]}<br>Stuff+ nivel del mar %{x:.1f} · en Harp Helú %{customdata[3]:.1f}"
+                                               "<br>temporada tal cual %{customdata[4]:.1f}<br>Δ altitud %{customdata[1]:+.1f}<br>n %{customdata[2]}<extra></extra>"))
     fig.update_layout(height=430, margin=dict(l=110, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
                       font=dict(family="IBM Plex Sans", color=ui.DIM), legend=dict(orientation="h", y=1.08, x=0, font=dict(size=11)),
-                      xaxis=dict(title="Stuff+ →", gridcolor="rgba(255,255,255,0.05)", zeroline=False,
-                                 range=[min(M.stuff_plus.min(), 95) - 1.5, max(M.stuff_plus.max(), 105) + 3] if len(M) else None),
+                      xaxis=dict(title="Stuff+ a nivel del mar →", gridcolor="rgba(255,255,255,0.05)", zeroline=False,
+                                 range=[min(M.stuff_mar.min(), 95) - 1.5, max(M.stuff_mar.max(), 105) + 3] if len(M) else None),
                       yaxis=dict(title=None, range=[0, 100], showticklabels=False, gridcolor="rgba(0,0,0,0)"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    st.markdown('<div class="dr-note">Eje vertical = percentil de cuánto pierde el arsenal en altitud comparado con lo esperado para su nivel de '
+    st.markdown('<div class="dr-note">Eje horizontal = Stuff+ del arsenal llevado a nivel del mar, para comparar pitchers sin importar en qué parques '
+                'lanzaron. Eje vertical = percentil de cuánto pierde el arsenal en altitud comparado con lo esperado para su nivel de '
                 'Stuff+ y sus tipos de pitch (los mejores pitchers pierden más puntos en términos absolutos; aquí eso se descuenta). '
                 'Arriba = pierde menos de lo esperado.</div>', unsafe_allow_html=True)
 
@@ -137,7 +144,8 @@ with right:
 st.write("")
 T = data.load("trends"); T = T[T.year == year]
 order = {"red": 0, "yellow": 1, "green": 2}
-V = V.assign(o=V.alert.map(order)).sort_values(["o", "stuff_plus"], ascending=[True, False])
+num = lambda v, f=".0f": "—" if v != v else format(v, f)  # sin proyección (sin altitud o sin movimiento medido)
+V = V.assign(o=V.alert.map(order)).sort_values(["o", "stuff_mar"], ascending=[True, False])
 rows = []
 for _, r in V.iterrows():
     tr = T[T.pitcher_anon_id == r.pitcher_anon_id].sort_values("week").stuff_plus.tail(6).tolist()
@@ -146,18 +154,19 @@ for _, r in V.iterrows():
     rows.append(
         f'<tr><td><a target="_self" href="player?pid={r.pitcher_anon_id}&season={year}"><b>{ui.pid_label(r.pitcher_anon_id)}</b></a>'
         f'<div class="dr-note">{r.role} · {r.hand} · n {int(r.n):,}</div></td>'
-        f'<td class="dr-mono"><b>{r.stuff_plus:.0f}</b></td><td class="dr-mono">{r.location_plus:.0f}</td><td class="dr-mono">{r.pitching_plus:.0f}</td>'
-        f'<td>{ui.fit_pill(r.fit)} <span class="dr-mono dr-note">{r.stuff_mar:.0f}→{r.stuff_harp:.0f}</span><div style="margin-top:4px">{ui.conf_bars(r.confidence)}</div></td>'
+        f'<td class="dr-mono"><b>{num(r.stuff_mar)}</b><div class="dr-note">temp. {r.stuff_plus:.0f}</div></td>'
+        f'<td class="dr-mono">{r.location_plus:.0f}</td><td class="dr-mono">{r.pitching_plus:.0f}</td>'
+        f'<td>{ui.fit_pill(r.fit)} <span class="dr-mono dr-note">→ {num(r.stuff_harp)} en Harp</span><div style="margin-top:4px">{ui.conf_bars(r.confidence)}</div></td>'
         f'<td>{ui.delta_fmt(r.delta)} <span class="dr-note">Stuff+</span>{obs}</td>'
         f'<td><span style="color:{c};font-weight:600">● {lab}</span></td><td>{ui.sparkline(tr)}</td>'
         f'<td style="text-align:right"><a class="dr-btn-ghost" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}">Player →</a></td></tr>')
 st.markdown(
     f'<div class="dr-card" style="padding:0"><div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px">'
     f'<div><span class="dr-h2">Roster</span> <span class="dr-note">{len(V)} pitchers · {ui.esc(source)}</span></div>'
-    f'<span class="dr-note">Stuff+ = temporada tal como se lanzó (parques reales). Harp Helú Fit = Stuff+ proyectado en Harp Helú frente a la liga '
-    f'(números = mismo arsenal a nivel del mar → en Harp Helú). Δ altitud = efecto del aire '
+    f'<span class="dr-note">Stuff+ = mismo arsenal llevado a nivel del mar, comparable entre pitchers (temp. = temporada tal como se lanzó, '
+    f'depende de en qué parques lanzó). Harp Helú Fit = Stuff+ proyectado en Harp Helú frente a la liga. Δ altitud = efecto del aire '
     f'sobre el mismo pitch (variante física). obs. = diferencia real Extreme − No Altitude del mismo pitcher.</span></div>'
-    f'<table class="dr-tbl"><tr><th>Pitcher</th><th>Stuff+</th><th>Location+</th><th>Pitching+</th><th>Harp Helú Fit</th><th>Δ altitud</th>'
+    f'<table class="dr-tbl"><tr><th>Pitcher</th><th>Stuff+ (mar)</th><th>Location+</th><th>Pitching+</th><th>Harp Helú Fit</th><th>Δ altitud</th>'
     f'<th>Alert</th><th>Trend · 6 sem</th><th></th></tr>{"".join(rows) or "<tr><td colspan=9 class=dr-note>Ningún pitcher coincide con los filtros.</td></tr>"}</table></div>',
     unsafe_allow_html=True)
 
@@ -175,11 +184,11 @@ with c1:
         st.markdown(
             f'<div class="dr-card" style="padding:0"><table class="dr-tbl"><tr><th></th>{head}</tr>'
             + row("Rol · mano", lambda r: f"{r.role} · {r.hand}")
-            + row("Stuff+ (nivel del mar → Harp Helú)", lambda r: f'<span class="dr-mono">{r.stuff_mar:.1f} → {r.stuff_harp:.1f}</span>')
+            + row("Stuff+ (nivel del mar → Harp Helú)", lambda r: f'<span class="dr-mono">{num(r.stuff_mar, ".1f")} → {num(r.stuff_harp, ".1f")}</span>')
             + row("Location+ / Pitching+", lambda r: f'<span class="dr-mono">{r.location_plus:.0f} / {r.pitching_plus:.0f}</span>')
             + row("Harp Helú Fit", lambda r: ui.fit_pill(r.fit))
             + row("Δ altitud (obs.)", lambda r: ui.delta_fmt(r.delta) + ("" if r.delta_observado != r.delta_observado else f' <span class="dr-note">({r.delta_observado:+.1f})</span>'))
-            + row("Mejor pitch · más afectado", lambda r: f"{r.best_pitch} · {r.worst_pitch}")
+            + row("Mejor en Harp · pierde más de lo esperado", lambda r: f"{r.best_pitch} · {r.worst_pitch}")
             + row("Confianza", lambda r: ui.conf_bars(r.confidence))
             + "</table></div>", unsafe_allow_html=True)
 with c2:

@@ -36,7 +36,7 @@ state, qp = data.read_state(), st.query_params
 P, A = data.load("pitchers"), data.load("arsenal")
 year = 2026  # Game usa el modelo vigente (ventana 2024-25 -> 2026)
 roster = data.roster_ids(year, state.get("roster_source", "Liga completa"))
-pool = P[(P.year == year) & (P.n >= 100)].copy()
+pool = P[(P.year == year) & (P.n >= 100) & P.stuff_harp.notna()].copy()  # solo pitchers con pitches proyectables
 pool["in_roster"] = pool.pitcher_anon_id.isin(roster)
 pool = pool.sort_values(["in_roster", "n"], ascending=[False, False])
 ids = pool.pitcher_anon_id.tolist()
@@ -77,26 +77,32 @@ for t in ars.AutoPitchType:
     Gs[t] = grid(pid, t, ctx, "No Altitude" if env == "Extreme Altitude" else "Extreme Altitude", ver)
 
 # ---------------- tarjetas del arsenal ----------------
-best_val = {t: G[t]["pitching_plus"].max() for t in G}
-top2 = sorted(best_val, key=best_val.get, reverse=True)[:2]
+# Sin resaltar "los mejores": Pitching+ no penaliza el daño por contacto (guía 34), así que cada tarjeta muestra la calidad
+# esperada junto al costo del contacto en esa misma ubicación, y el usuario ve el trade-off en lugar de un ranking.
 cards = st.columns(max(len(ars), 1))
 for col, r in zip(cards, ars.itertuples()):
     g = G[r.AutoPitchType]
     i = np.unravel_index(g["pitching_plus"].argmax(), g["pitching_plus"].shape)
     x, z = g["xs"][i[1]], g["ys"][i[0]]
-    hl = f"border-color:{ui.ACCENT};" if r.AutoPitchType in top2 else ""
+    zone = (np.abs(g["xs"])[None, :] <= 0.83) & (g["ys"][:, None] >= 1.5) & (g["ys"][:, None] <= 3.5)
+    dmg, dmg_zone = g["damage"][i], g["damage"][zone].mean()
+    dmg_style = f"color:{ui.YEL}" if dmg > dmg_zone else ""
     stuff_env = r.stuff_harp if env == "Extreme Altitude" else r.stuff_mar
     col.markdown(
-        f'<div class="dr-card" style="{hl}min-height:210px"><div style="display:flex;justify-content:space-between;align-items:center">'
+        f'<div class="dr-card" style="min-height:236px"><div style="display:flex;justify-content:space-between;align-items:center">'
         f'<span><span class="dr-code">{r.code}</span> <b>{r.AutoPitchType}</b></span><span class="dr-note dr-mono">{r.usage:.0%}</span></div>'
         f'<div style="margin:10px 0 2px"><span class="dr-kpi-v" style="font-size:30px">{g["pitching_plus"][i]:.0f}</span> '
-        f'<span class="dr-kpi-s">Pitching+ en su mejor zona</span></div><div class="dr-note">{zone_text(x, z, bside)}</div>'
+        f'<span class="dr-kpi-s">Pitching+ máximo</span></div><div class="dr-note">{zone_text(x, z, bside)}</div>'
         f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span class="dr-pill">Whiff {g["whiff_per_pitch"][i]:.0%}</span>'
         f'<span class="dr-pill">Strike cantado {g["called_strike"][i]:.0%}</span></div>'
-        f'<div style="display:flex;justify-content:space-between;margin-top:12px"><span class="dr-note">Stuff+ {stuff_env:.0f}</span>{ui.conf_bars(r.evidence, False)}</div></div>',
+        f'<div class="dr-note" style="margin-top:8px;{dmg_style}">Costo del contacto ahí: <b class="dr-mono">{dmg:.1f}</b> runs/100 '
+        f'(zona: {dmg_zone:.1f})</div>'
+        f'<div style="display:flex;justify-content:space-between;margin-top:10px"><span class="dr-note">Stuff+ {stuff_env:.0f}</span>{ui.conf_bars(r.evidence, False)}</div></div>',
         unsafe_allow_html=True)
-st.markdown(f'<div class="dr-note" style="margin-top:6px">Borde rojo = los dos pitches con mayor calidad esperada en este contexto. Es una lectura de calidad '
-            f'(strike, whiff y chase esperados), no una política de selección: el modelo no estima el efecto causal de elegir un pitch (guía 37).</div>',
+st.markdown(f'<div class="dr-note" style="margin-top:6px">Tarjetas en orden de uso. Pitching+ mide strike, whiff y chase esperados y <b>no</b> incluye el costo '
+            f'del contacto, que en Harp Helú es mayor (H3); por eso cada tarjeta muestra los dos. En amarillo, cuando el contacto en la zona de mayor '
+            f'Pitching+ cuesta más que el promedio de la zona. Es una lectura de calidad, no una política de selección: el modelo no estima el efecto '
+            f'causal de elegir un pitch (guía 37).</div>',
             unsafe_allow_html=True)
 
 # ---------------- heatmaps del pitch elegido ----------------
@@ -130,7 +136,8 @@ if sel_t:
     h[2].markdown(
         f'<div class="dr-card" style="height:400px;overflow:auto"><div class="dr-label">Lectura</div>'
         f'<div style="font:600 15px/1.45 IBM Plex Sans;margin:10px 0">En {balls}-{strikes} vs. bateador {"derecho" if bside == "Right" else "zurdo"}, '
-        f'el {sel_t} tiene su mayor calidad esperada {zone_text(g["xs"][i[1]], g["ys"][i[0]], bside)} (Pitching+ {g["pitching_plus"][i]:.0f}). '
+        f'el {sel_t} tiene su mayor calidad esperada {zone_text(g["xs"][i[1]], g["ys"][i[0]], bside)} (Pitching+ {g["pitching_plus"][i]:.0f}; '
+        f'costo del contacto ahí {g["damage"][i]:.1f} runs/100). '
         f'Su contacto es más caro {zone_text(g["xs"][j[1]], g["ys"][j[0]], bside)}.</div>'
         f'<div style="display:flex;justify-content:space-between;margin-top:6px"><span>Costo del contacto (zona) · {here}</span><b class="dr-mono">{dz:.1f}</b></div>'
         f'<div style="display:flex;justify-content:space-between;margin-top:6px"><span>Mismo pitch · {other}</span><b class="dr-mono">{dz_o:.1f}</b></div>'

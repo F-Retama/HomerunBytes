@@ -282,23 +282,36 @@ with tabs[1]:
 # =============== Evaluar prospecto ===============
 with tabs[2]:
     E = eng(Path(engine.__file__).stat().st_mtime)
-    c = st.columns([1.2, 1, 1.4], vertical_alignment="bottom")
+    ENV_OPTS = {"No Altitude": "Nivel del mar", "Medium Altitude": "Medium Altitude", "Extreme Altitude": "Harp Helú (Extreme)"}
+    MOVE = ("InducedVertBreak", "HorzBreak")
+    c = st.columns([1.2, 0.8, 1.2, 1.4], vertical_alignment="bottom")
     pname = c[0].text_input("Nombre del prospecto", value="Prospecto 1")
     phand = c[1].selectbox("Mano", ["Right", "Left"], format_func=lambda h: "RHP" if h == "Right" else "LHP", key="p_hand")
-    use_ars = c[2].toggle("Contexto de arsenal (su recta y uso)", value=False,
+    penv = c[2].selectbox("Medido en", list(ENV_OPTS), format_func=ENV_OPTS.get, key="p_env",
+                          help="Entorno donde se midieron las métricas. El movimiento (IVB, HB) se lleva a nivel del mar con los factores validados "
+                               "(guía 36); velocidad, spin y release no cambian con el parque. Cambiar el entorno reinicia la tabla.")
+    use_ars = c[3].toggle("Contexto de arsenal (su recta y uso)", value=False,
                           help="Apagado = variante sin arsenal, la validada para pitchers nuevos (guía 35). Encendido = usa las diferencias contra su "
                                "recta y su uso, como un pitcher con historial: más información, pero extrapola fuera de la LMB.")
 
+    def r_env(env, var):
+        """Fracción del movimiento a nivel del mar que conserva el pitch en ese entorno (1 = nivel del mar)."""
+        return 1.0 if env == "No Altitude" else float(E.fac[env][var])
+
+    def to_sea(d):
+        return {k: (v / r_env(penv, k) if k in MOVE else v) for k, v in d.items()}
+
     def default_row(t, usage):
-        m = E.league_sample(t, phand)[2]
-        return {"Tipo": t, "Uso %": usage, "Velocidad": round(m["RelSpeed"], 1), "IVB": round(m["InducedVertBreak"], 1), "HB": round(m["HorzBreak"], 1),
-                "Spin": round(m["SpinRate"]), "Eje": round(m["SpinAxis"]), "Extensión": round(m["Extension"], 2), "Altura rel.": round(m["RelHeight"], 2),
-                "Lado rel.": round(m["RelSide"], 2)}
-    ed_key = f"pros_{phand}"
+        m = E.league_sample(t, phand)[2]  # promedio de la liga a nivel del mar, expresado en el entorno de medición
+        return {"Tipo": t, "Uso %": usage, "Velocidad": round(m["RelSpeed"], 1), "IVB": round(m["InducedVertBreak"] * r_env(penv, "InducedVertBreak"), 1),
+                "HB": round(m["HorzBreak"] * r_env(penv, "HorzBreak"), 1), "Spin": round(m["SpinRate"]), "Eje": round(m["SpinAxis"]),
+                "Extensión": round(m["Extension"], 2), "Altura rel.": round(m["RelHeight"], 2), "Lado rel.": round(m["RelSide"], 2)}
+    ed_key = f"pros_{phand}_{penv}"
     if ed_key not in st.session_state:
         st.session_state[ed_key] = pd.DataFrame([default_row("Four-Seam", 50), default_row("Slider", 30), default_row("Changeup", 20)])
-    st.markdown('<div class="dr-note">Métricas a nivel del mar (o del entorno donde se midieron, convertidas), en convención de diestro: HB positivo = '
-                'lado del brazo. Valores iniciales = promedio de la liga para el tipo y la mano. Agrega o quita filas.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="dr-note">Métricas tal como se midieron en <b>{ENV_OPTS[penv]}</b>, en convención de diestro: HB positivo = lado del brazo. '
+                f'El movimiento se convierte a nivel del mar antes de simular. Valores iniciales = promedio de la liga para el tipo y la mano, '
+                f'medido en ese entorno. Agrega o quita filas.</div>', unsafe_allow_html=True)
     ed = st.data_editor(st.session_state[ed_key], num_rows="dynamic", use_container_width=True, key=f"{ed_key}_ed",
                         column_config={"Tipo": st.column_config.SelectboxColumn(options=TYPES, required=True)})
     ed = ed.dropna(subset=["Tipo"])
@@ -308,7 +321,7 @@ with tabs[2]:
                 "Extensión": "Extension", "Altura rel.": "RelHeight", "Lado rel.": "RelSide"}
         fb = None
         if use_ars and len(fbr):
-            fb = {cols[k]: float(fbr.iloc[0][k]) for k in cols}
+            fb = to_sea({cols[k]: float(fbr.iloc[0][k]) for k in cols})
         if fb:  # misma variante que la referencia oficial (scores de 18 con arsenal cuando existe)
             AL = A[(A.year == 2026) & (A.n >= 50)].rename(columns={"stuff_harp": "harp"})
             PL = P[(P.year == 2026) & (P.n >= 100)].rename(columns={"stuff_harp": "harp"})
@@ -318,7 +331,9 @@ with tabs[2]:
         PRF = data.load("profiles")
         out = []
         for r in ed.to_dict("records"):
-            vals = {cols[k]: float(r[k]) for k in cols}
+            vals = to_sea({cols[k]: float(r[k]) for k in cols})
+            # Las zonas del perfil se midieron en pitches lanzados en Extreme: el movimiento se compara en Harp Helú (guía 40.3).
+            vals_harp = {k: (v * r_env("Extreme Altitude", k) if k in MOVE else v) for k, v in vals.items()}
             usage = float(r["Uso %"]) / 100
             t = r["Tipo"]
             tb = E.prospect(t, phand, vals, fb=fb, usage=usage if fb else None).set_index("env")
@@ -331,8 +346,8 @@ with tabs[2]:
             pct = float((ref_h <= tb.loc["Extreme Altitude", "stuff_plus"]).mean()) if len(ref_h) else np.nan
             fit = "Strong Fit" if pct >= .75 else "Moderate Fit" if pct >= .5 else "Low Fit" if pct >= .25 else "Poor Fit"
             prof = PRF[(PRF.AutoPitchType == t) & PRF.en_perfil & PRF.feature.isin(cols.values())]
-            inz = sum(1 for q in prof.itertuples() if (q.zona_p25 <= vals[q.feature] <= q.zona_p75)
-                      or (q.lift_extreme_2025 > 0 and vals[q.feature] > q.zona_p75) or (q.lift_extreme_2025 < 0 and vals[q.feature] < q.zona_p25))
+            inz = sum(1 for q in prof.itertuples() if (q.zona_p25 <= vals_harp[q.feature] <= q.zona_p75)
+                      or (q.lift_extreme_2025 > 0 and vals_harp[q.feature] > q.zona_p75) or (q.lift_extreme_2025 < 0 and vals_harp[q.feature] < q.zona_p25))
             out.append({"Tipo": t, "usage": usage, "mar": tb.loc["No Altitude", "stuff_plus"], "harp": tb.loc["Extreme Altitude", "stuff_plus"], "delta": d,
                         "sens": "" if abs(d_of - d) < 0.7 else f'<div class="dr-note">arsenal {d_of:+.1f}</div>',
                         "fit": fit, "perfil": f"{inz} de {len(prof)}" if len(prof) else "—", "whiff_harp": tb.loc["Extreme Altitude", "p_whiff_per_pitch"],
@@ -360,12 +375,13 @@ with tabs[2]:
                     f'<div class="dr-note" style="padding:10px 14px">Cada pitch se simula con la dispersión real de la liga (tipo y mano) centrada en sus métricas. '
                     f'Fit = percentil de su Stuff+ proyectado en Harp Helú entre pitches del mismo tipo en la liga (2026). Δ = variante física '
                     f'(titular); "arsenal" = sensibilidad con el modelo de arsenal cuando difiere ≥ 0.7. "Rasgos del perfil" = cuántos rasgos del perfil ideal cumple '
-                    f'(dentro de la zona o más allá en la dirección favorable). Variante {"con" if fb else "sin"} contexto de arsenal; los percentiles se '
+                    f'(dentro de la zona o más allá en la dirección favorable), con el movimiento en Harp Helú porque las zonas se midieron en altitud. '
+                    f'Medido en {ENV_OPTS[penv]}. Variante {"con" if fb else "sin"} contexto de arsenal; los percentiles se '
                     f'calculan contra la liga evaluada con la misma variante.</div></div>',
                     unsafe_allow_html=True)
         if st.button("Guardar prospecto en shortlist", type="primary"):
             n = data.add_to_shortlist([{"key": f"x:{pname}", "kind": "prospect", "name": pname, "hand": phand, "added": datetime.now().strftime("%Y-%m-%d"),
-                                        "priority": "B", "note": "", "arsenal_context": bool(fb),
+                                        "priority": "B", "note": "", "arsenal_context": bool(fb), "measured_in": penv,
                                         "results": {"stuff_mar": ars_mar, "stuff_harp": ars_harp, "delta": ars_d, "fit": fit_all,
                                                     "pitches": O.drop(columns=["warn", "sens"]).to_dict("records")},
                                         "inputs": ed.to_dict("records")}])
