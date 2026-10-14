@@ -1,8 +1,12 @@
-# Probado con Python 3.9 (macOS). Instalar: python -m pip install -r requirements.txt
-pandas>=2.3.3
-numpy>=2.0.2
+# Python 3.9 a 3.13, en macOS, Windows o Linux. Instalar: python -m pip install -r requirements.txt
+# Probado con Python 3.9 (macOS) y Python 3.13 (Linux).
+# scikit-learn se fija en 1.6.x: los modelos se guardan con pickle (18_three_scores_bundle.pkl) y solo se abren con la misma
+# version; 1.6.1 es la ultima que soporta Python 3.9 y no existe para Python 3.14.
+# pandas < 3 y numpy < 2.4: el codigo se valido con pandas 2.3.3 y numpy 2.0 a 2.3; pandas 3 cambia comportamientos por defecto.
+pandas>=2.3.3,<3
+numpy>=2.0.2,<2.4
 pyarrow>=21.0.0
-scikit-learn>=1.6.1
+scikit-learn>=1.6.1,<1.7
 scipy>=1.13.1
 joblib>=1.5.3
 openpyxl>=3.1.5

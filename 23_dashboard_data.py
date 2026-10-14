@@ -131,6 +131,12 @@ def pct_band(x, ref):
     return np.select([x >= q[2], x >= q[1], x >= q[0]], ["Strong Fit", "Moderate Fit", "Low Fit"], "Poor Fit")
 
 
+def pct_rank(v, ref):
+    """Percentil de v en ref; NaN si v falta (sin esto, un valor faltante contaba como percentil 0 = el peor)."""
+    ref = pd.Series(ref).dropna()
+    return np.nan if v != v or ref.empty else float((ref <= v).mean())
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     mods = t16.load_modules(); cfg = t18.build_cfg(mods)
@@ -154,6 +160,9 @@ def main():
     raw["SA_r"] = np.where(left, 360 - raw["SpinAxis"], raw["SpinAxis"])
     raw["SA_sin"], raw["SA_cos"] = np.sin(np.radians(raw["SA_r"])), np.cos(np.radians(raw["SA_r"]))
     raw["RelSide_r"] = raw["RelSide"] * raw["PitcherThrows"].astype(str).map({"Left": -1.0}).fillna(1.0)
+    # Pitches sin movimiento medido (IVB o HB faltantes): la transformacion de altitud no los mueve y 22 les deja delta 0,
+    # lo que inflaba su Stuff+ proyectado en Harp Helu. Se tratan como sin proyeccion, igual que los que no tienen altitud.
+    sin_mov = set(raw.loc[raw["InducedVertBreak"].isna() | raw["HorzBreak"].isna(), "PitchUID"])
     seq = pd.read_parquet(BASE_DIR / "17_pitch_sequence.parquet", columns=["PitchUID"])
     seq["date"] = seq["PitchUID"].map(uuid_dt)
 
@@ -163,6 +172,7 @@ def main():
         sc = sc_all[sc_all.window == win].copy()
         pr = proj_all[proj_all.window == win][["PitchUID", "stuff_nivel_mar", "stuff_harp_helu", "delta_oficial"]]
         sc = sc.merge(pr, on="PitchUID", how="left").merge(seq, on="PitchUID", how="left")
+        sc.loc[sc["PitchUID"].isin(sin_mov), ["stuff_nivel_mar", "stuff_harp_helu", "delta_oficial"]] = np.nan
         sc["delta"] = sc["stuff_harp_helu"] - sc["stuff_nivel_mar"]
 
         # Componentes fisicos del Stuff+ (whiff, chase) a nivel del mar vs Harp Helu, con el MISMO esquema que el
@@ -223,7 +233,7 @@ def main():
             b1, b0 = np.polyfit(g_.loc[ok, "stuff_mar"], g_.loc[ok, "delta"], 1)
             a.loc[idx, "exceso"] = g_["delta"] - (b0 + b1 * g_["stuff_mar"])
             ref_ = a.loc[g_.index[ok], "exceso"]
-            a.loc[idx, "exceso_pct"] = a.loc[idx, "exceso"].apply(lambda v: (ref_ <= v).mean())
+            a.loc[idx, "exceso_pct"] = a.loc[idx, "exceso"].apply(lambda v: pct_rank(v, ref_))
         a["action"] = np.select([(a.exceso_pct <= 0.10) & robust & (a.n >= MIN_PITCH), (a.exceso_pct <= 0.25) & (a.n >= MIN_PITCH)],
                                 ["Adjust", "Review"], "Maintain")
         a["year"] = year
@@ -241,7 +251,10 @@ def main():
                     fps.append({"year": year, "pitcher_anon_id": pid, "AutoPitchType": ptype, "env": env, "ivb": base_ivb * rI[env], "hb": base_hb * rH[env], "fuente": "proyectado", "n": 0})
 
         # ---------------- pitcher ----------------
-        wavg = lambda df, col: np.average(df[col], weights=df["n"]) if df[col].notna().all() else np.nan
+        # Promedio ponderado por pitches de los tipos con valor. Un tipo sin proyeccion (p. ej. pitches sin altitude_category)
+        # ya no anula el promedio de todo el arsenal; NaN solo si ningun tipo tiene valor.
+        wavg = lambda df, col: (np.average(df.loc[df[col].notna(), col], weights=df.loc[df[col].notna(), "n"])
+                                if df[col].notna().any() else np.nan)
         prow = []
         for pid, gg in a.groupby("pitcher_anon_id"):
             n = gg["n"].sum()
@@ -249,16 +262,22 @@ def main():
             row = {"year": year, "pitcher_anon_id": pid, "n": int(n), "stuff_plus": wavg(gg, "stuff_plus"), "location_plus": wavg(gg, "location_plus"),
                    "pitching_plus": wavg(gg, "pitching_plus"), "stuff_mar": wavg(gg, "stuff_mar"), "stuff_harp": wavg(gg, "stuff_harp"),
                    "delta": wavg(gg, "delta"), "delta_oficial": wavg(gg, "delta_oficial"),
-                   "exceso": np.average(gg["exceso"].fillna(0), weights=gg["n"]),
+                   "exceso": np.average(gg["exceso"].fillna(0), weights=gg["n"]) if gg["exceso"].notna().any() else np.nan,
                    "delta_observado": np.average(od_ok["delta_observado"], weights=od_ok["n"]) if len(od_ok) else np.nan,
                    "share_robust": gg.loc[gg.AutoPitchType.map(ev_map).eq("Robust"), "n"].sum() / n,
                    "share_uncertain": gg.loc[gg.AutoPitchType.map(ev_map).eq("Uncertain"), "n"].sum() / n}
             red = (gg[gg.usage >= 0.15]["action"] == "Adjust").any()
             yellow = (gg[gg.usage >= 0.30]["action"] != "Maintain").any()
             row["alert"] = "red" if red else "yellow" if yellow else "green"
-            worst = gg.sort_values("delta").iloc[0]
-            row["worst_pitch"] = worst["AutoPitchType"]; row["best_pitch"] = gg.sort_values("stuff_plus", ascending=False).iloc[0]["AutoPitchType"]
-            row["most_resilient_pitch"] = gg[gg.usage >= 0.10].sort_values("delta", ascending=False)["AutoPitchType"].iloc[0] if (gg.usage >= 0.10).any() else worst["AutoPitchType"]
+            # Mas afectado / mas resiliente = exceso (pierde mas o menos de lo esperado para su nivel y tipo), igual que las
+            # alertas; el delta bruto senalaba casi siempre a la recta. Mejor pitch = calidad proyectada en Harp Helu.
+            cand = gg[gg.usage >= 0.10] if (gg.usage >= 0.10).any() else gg
+            key = "exceso" if cand["exceso"].notna().any() else "delta"
+            cand = cand[cand[key].notna()] if cand[key].notna().any() else cand
+            row["worst_pitch"] = cand.sort_values(key).iloc[0]["AutoPitchType"]
+            row["most_resilient_pitch"] = cand.sort_values(key, ascending=False).iloc[0]["AutoPitchType"]
+            bkey = "stuff_harp" if gg["stuff_harp"].notna().any() else "stuff_plus"
+            row["best_pitch"] = gg.sort_values(bkey, ascending=False).iloc[0]["AutoPitchType"]
             prow.append(row)
         p = pd.DataFrame(prow)
         val = sc.groupby("pitcher_anon_id")["realized_value_pitcher"].mean().mul(100).rename("value_per_100")
@@ -268,10 +287,10 @@ def main():
         p = p.merge(rl[["pitcher_anon_id", "role", "apps", "pitches_per_app"]], on="pitcher_anon_id", how="left").merge(
             tm[["pitcher_anon_id", "team_label", "team_home_env"]], on="pitcher_anon_id", how="left")
         elig = p.n >= MIN_FIT
-        p["fit"] = np.where(elig, pct_band(p["stuff_harp"].to_numpy(), p.loc[elig, "stuff_harp"]), "Sin muestra")
-        p["fit_pct"] = p["stuff_harp"].apply(lambda v: (p.loc[elig, "stuff_harp"] <= v).mean())
-        p["sens_pct"] = p["delta"].apply(lambda v: (p.loc[elig, "delta"] <= v).mean())  # alto = pierde menos
-        p["exceso_pct"] = p["exceso"].apply(lambda v: (p.loc[elig, "exceso"] <= v).mean())  # alto = pierde menos de lo esperado
+        p["fit"] = np.where(elig & p["stuff_harp"].notna(), pct_band(p["stuff_harp"].to_numpy(), p.loc[elig, "stuff_harp"]), "Sin muestra")
+        p["fit_pct"] = p["stuff_harp"].apply(lambda v: pct_rank(v, p.loc[elig, "stuff_harp"]))
+        p["sens_pct"] = p["delta"].apply(lambda v: pct_rank(v, p.loc[elig, "delta"]))  # alto = pierde menos
+        p["exceso_pct"] = p["exceso"].apply(lambda v: pct_rank(v, p.loc[elig, "exceso"]))  # alto = pierde menos de lo esperado
         p["confidence"] = np.select([(p.share_robust >= 0.6) & (p.n >= 300), (p.n < 150) | (p.share_uncertain >= 0.4)], ["Robust", "Uncertain"], "Conditional")
         # Tendencia semanal (Stuff+ medio por semana ISO con >= 20 pitches).
         sc["week"] = sc["date"].dt.to_period("W").dt.start_time

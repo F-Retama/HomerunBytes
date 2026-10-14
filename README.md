@@ -6,18 +6,34 @@ Proyecto de análisis de lanzamientos para estudiar su calidad física (Physical
 
 1. Clona el repositorio y abre su carpeta en VS Code.
 2. Coloca el dataset original **`stuff_model_df.parquet`** en esa misma carpeta. Se obtiene del material compartido del hackathon: **no viene en GitHub ni lo generan los scripts**.
-3. Instala las dependencias en un entorno virtual:
+3. Instala las dependencias en un entorno virtual con **Python 3.9 a 3.13** (scikit-learn 1.6.x, fijado en `requirements.txt` para que los modelos guardados se abran en cualquier equipo, no existe para Python 3.14):
 
 ```bash
 python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
+# Windows cmd:        .venv\Scripts\activate.bat
 
 python -m pip install -r requirements.txt
 ```
 
-En VS Code, selecciona el intérprete de `.venv` mediante **Python: Select Interpreter**. Si tu equipo usa `python3` en lugar de `python`, sustituye el comando.
+En VS Code, selecciona el intérprete de `.venv` mediante **Python: Select Interpreter**. Si tu equipo usa `python3` en lugar de `python`, sustituye el comando (en Windows también funciona `py -3.13 -m venv .venv`).
+
+## Probar el prototipo del dashboard (macOS, Windows o Linux)
+
+Con el entorno activado y el parquet en la carpeta del repo:
+
+```bash
+python correr_prototipo.py
+```
+
+Corre la cadena mínima que necesita el dashboard (`02 → 17 → 18 → 19 --stage cv → 20 → 21 → 22 → 23 → 24`), omite los pasos cuyos resultados ya existen, verifica que el motor reproduce los scores oficiales de `18` (diferencia ~1e-14) y abre Streamlit en el navegador (normalmente `http://localhost:8501`).
+
+- La primera corrida completa tarda del orden de 30 minutos (los pasos largos son `18`, `19` y `21`). Si alguien comparte sus salidas ya generadas (`17_*`, `18_*`, `19_cv_oof.parquet`, `20_*`, `21_*`, `22_*`), cópialas a la carpeta y esos pasos se omiten.
+- `python correr_prototipo.py --todo` vuelve a correr todo; `--sin-abrir` prepara todo sin abrir Streamlit. Los logs de cada paso quedan en `prototipo_logs/`.
+- La primera vez que se usa Streamlit en un equipo, pide un correo en la terminal antes de levantar el servidor: presiona Enter para dejarlo vacío.
+- El pipeline reescribe `22_dashboard_manifest.json` (fechas y hashes); el runner avisa al final. No lo subas salvo que quieras actualizar el del equipo.
 
 ## Ejecutar en orden
 
@@ -163,13 +179,12 @@ Los outputs quedaron congelados en `22_dashboard_manifest.json`, con `simulate_p
 
 ## Dashboard — Pitching Decision System (fase 1, 30/09/2026)
 
-Diseño en `Design_Thinking_Dashboard_Diablos_Rojos.md` y en los wireframes; el análisis de lo que los modelos sostienen está en `Dashboard_Analisis_Factibilidad.md`. Para ejecutarlo, desde la raíz del repo y después de correr la secuencia 17–22:
+Diseño en `Design_Thinking_Dashboard_Diablos_Rojos.md` y en los wireframes; el análisis de lo que los modelos sostienen está en `Dashboard_Analisis_Factibilidad.md`. Para ejecutarlo, lo más simple es `python correr_prototipo.py` (sección "Probar el prototipo del dashboard"). A mano, desde la raíz del repo y después de correr la secuencia 17–22:
 
 ```bash
-python -m pip install streamlit plotly
 python 23_dashboard_data.py
 python 24_arsenal_harp.py
-streamlit run dashboard/app.py
+python -m streamlit run dashboard/app.py
 ```
 
 Pantallas listas: **Roster** (inbox, mapa Stuff+ × adaptación, tabla con tendencia y comparador), **Player Overview** (recomendación, arsenal, fingerprint de movimiento a nivel del mar vs. Harp Helú, adaptación, Why? y development targets) y **Simulator** (el mismo pitch a nivel del mar, en Medium y en Harp Helú; what-if de física; heatmap de Location+ por count y lado; experimentos guardados) y **Scouting** (perfil ideal por tipo, explorador de la liga con señales Stuff+ contra resultados, evaluación de prospectos con arsenal completo, comparador y shortlist) y **Game** (lectura táctica por count y lado del bateador: calidad esperada por pitch y heatmaps de Pitching+ y del costo del contacto, a nivel del mar vs. Harp Helú). El motor (`dashboard/lib/engine.py`) reproduce exactamente los scores oficiales; se verifica con `python dashboard/lib/engine.py`. Las cinco pantallas del diseño están integradas.
@@ -205,3 +220,14 @@ Detalle en la guía, sección 39.
 - `Dashboard_Analisis_Factibilidad.md` y el manifiesto de `22` quedaron al día.
 
 Detalle en la guía, sección 40.
+
+## Arreglos para el video y datos incompletos (12/10/2026)
+
+- **Game:** sin el borde rojo que señalaba "los dos mejores" pitches; cada tarjeta muestra el Pitching+ máximo junto al costo del contacto en esa misma zona (Pitching+ no penaliza el contacto, guía 34).
+- **Roster:** KPI, mapa, orden y columna principal usan el Stuff+ a nivel del mar. El de temporada baja con cada pitch lanzado en altitud y castigaba a los equipos locales en Extreme (equipo por defecto: 99.5 de temporada contra 102.2 a nivel del mar).
+- **Player:** "Primary risk" y "Siguiente paso" señalan el pitch que pierde más de lo esperado para su nivel (exceso), igual que las alertas; antes era casi siempre la recta (90% → 47% de los pitchers en 2026). `23` alinea `worst_pitch`, `most_resilient_pitch` y `best_pitch` (calidad en Harp Helú).
+- **Scouting › Evaluar prospecto:** selector "Medido en" que lleva el movimiento a nivel del mar antes de simular; los rasgos del perfil se comparan en Harp Helú.
+- **Datos incompletos (`23`):** un tipo sin proyección ya no anula el promedio del arsenal; un valor faltante queda "Sin muestra" en lugar de contar como percentil 0; los pitches sin movimiento medido (433 en 2026) quedan sin proyección en lugar de Δ = 0. Alertas 2026: 38 rojas, 66 amarillas y 267 verdes (antes 39/65/267).
+- **Multiplataforma:** `correr_prototipo.py` reemplaza los pasos manuales en macOS, Windows y Linux; `requirements.txt` acota pandas < 3, numpy < 2.4 y scikit-learn 1.6.x; el estado del dashboard se guarda en UTF-8.
+
+Pendiente de decidir antes del guion: `Revision_Pre_Guion.md`. Falta registrar estos cambios en la guía y la bitácora.

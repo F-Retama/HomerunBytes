@@ -43,7 +43,8 @@ qp, state = st.query_params, data.read_state()
 P, A, FP = data.load("pitchers"), data.load("arsenal"), data.load("fingerprint")
 year = 2026  # el Simulator usa el modelo vigente (ventana 2024-25 -> 2026), el único con pitches para transformar
 asked = qp.get("season")
-pool = P[(P.year == year) & (P.n >= 50)].sort_values("n", ascending=False)
+# Solo pitchers con proyección (pitches con categoría de altitud y movimiento medido): sin ellos no hay qué transformar.
+pool = P[(P.year == year) & (P.n >= 50) & P.stuff_harp.notna()].sort_values("n", ascending=False)
 src = st.columns([1.2, 1.3, 1.2, 1.4], vertical_alignment="bottom")
 mode = src[0].segmented_control("Origen", ["Pitcher del roster", "Pitch manual"], default="Pitcher del roster")
 base_fb, usage, meta, rows, rows_ars = None, None, {}, None, None
@@ -67,7 +68,8 @@ else:
     pid0 = qp.get("pid", state.get("last_pid"))
     ids = pool.pitcher_anon_id.tolist()
     if pid0 and pid0 not in ids:
-        st.info(f"{ui.pid_label(pid0)} no tiene suficientes pitches en 2026; el Simulator usa el modelo vigente (2026). "
+        st.info(f"{ui.pid_label(pid0)} no tiene suficientes pitches proyectables en 2026 (con categoría de altitud y movimiento medido); "
+                f"el Simulator usa el modelo vigente (2026). "
                 "Elige otro pitcher o usa 'Pitch manual' con sus métricas.")
     elif asked and str(asked) != "2026":
         st.caption("El Simulator usa la temporada 2026 (modelo vigente).")

@@ -17,3 +17,6 @@ dashboard/state/
 
 # Configuración local de herramientas
 .claude/
+
+# Logs del runner del prototipo (correr_prototipo.py)
+prototipo_logs/

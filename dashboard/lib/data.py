@@ -28,7 +28,7 @@ def data_ready():
 
 def read_state():
     try:
-        return json.loads(STATE.read_text())
+        return json.loads(STATE.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
@@ -36,7 +36,7 @@ def read_state():
 def write_state(**kw):
     s = read_state(); s.update(kw)
     STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(s, indent=2, ensure_ascii=False))
+    STATE.write_text(json.dumps(s, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def seasons():
@@ -83,7 +83,7 @@ EXPERIMENTS = ROOT / "dashboard" / "state" / "experiments.json"
 
 def list_experiments():
     try:
-        return json.loads(EXPERIMENTS.read_text())
+        return json.loads(EXPERIMENTS.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
@@ -92,12 +92,12 @@ def save_experiment(exp):
     exps = list_experiments()
     exps.append(exp)
     EXPERIMENTS.parent.mkdir(parents=True, exist_ok=True)
-    EXPERIMENTS.write_text(json.dumps(exps, indent=2, ensure_ascii=False, default=float))
+    EXPERIMENTS.write_text(json.dumps(exps, indent=2, ensure_ascii=False, default=float), encoding="utf-8")
 
 
 def delete_experiments(ids):
     exps = [e for e in list_experiments() if e["id"] not in set(ids)]
-    EXPERIMENTS.write_text(json.dumps(exps, indent=2, ensure_ascii=False, default=float))
+    EXPERIMENTS.write_text(json.dumps(exps, indent=2, ensure_ascii=False, default=float), encoding="utf-8")
 
 
 # ---------------- shortlist (Scouting) ----------------

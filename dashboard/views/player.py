@@ -53,7 +53,10 @@ if rec.empty:
     rec = I.assign(o=I.alert.map({"red": 0, "yellow": 1, "green": 2})).sort_values(["o", "delta"]).head(1)
 best = A.sort_values("stuff_plus", ascending=False).iloc[0]
 core = A[A.n >= 50] if (A.n >= 50).any() else A
-worst = A[A.usage >= 0.10].sort_values("delta").iloc[0] if (A.usage >= 0.10).any() else A.sort_values("delta").iloc[0]
+# Riesgo principal = el pitch (uso >= 10%) que pierde más DE LO ESPERADO para su nivel y tipo (exceso, guía 38.3), la misma
+# lectura que alertas e inbox. El Δ bruto casi siempre señalaba a la recta, porque los mejores pitches pierden más puntos.
+cand = A[A.usage >= 0.10] if (A.usage >= 0.10).any() else A
+worst = (cand[cand.exceso.notna()].sort_values("exceso") if cand.exceso.notna().any() else cand.sort_values("delta")).iloc[0]
 alt_core = core[core.AutoPitchType != worst.AutoPitchType]
 res = (alt_core if len(alt_core) else core).sort_values("stuff_harp", ascending=False).iloc[0]
 fac = data.load("fingerprint"); fac = fac[(fac.year == year) & (fac.pitcher_anon_id == pid)]
@@ -71,6 +74,23 @@ else:
     rec_txt = f"Sin alertas en {year}: el arsenal conserva su calidad en Harp Helú dentro de lo esperado para sus tipos de pitch."
     rec_kind, rec_conf, rec_pitch = "Opportunity", p.confidence, best.AutoPitchType
 kind_badge = {"Needs attention": ("Adjust", ui.RED), "Review": ("Review", ui.YEL), "Opportunity": ("Maintain", ui.GRN)}[rec_kind]
+ivb0, ivb1 = (wfp.loc[e].ivb if e in wfp.index else float("nan") for e in ("No Altitude", "Extreme Altitude"))
+w_move = (f"el aire le quita movimiento (IVB {ivb0:.1f} → {ivb1:.1f} in)" if ivb0 == ivb0 and ivb1 == ivb1
+          else "sin movimiento medido para mostrar el cambio")
+wd = worst.delta
+w_change = ("no tiene proyección" if wd != wd else "conserva su Stuff+" if abs(wd) < 0.05
+            else f"pierde {abs(wd):.1f} de Stuff+" if wd < 0 else f"gana {wd:.1f} de Stuff+")
+if worst.exceso == worst.exceso and worst.exceso < 0:
+    risk_dot, risk_txt = ui.RED, (f"El {worst.AutoPitchType} ({worst.usage:.0%} de uso) {w_change} en Harp Helú, {abs(worst.exceso):.1f} más de "
+                                  f"lo esperado para un {worst.AutoPitchType} de su nivel: {w_move}.")
+elif worst.exceso == worst.exceso:
+    risk_dot, risk_txt = ui.YEL, (f"Ningún pitch pierde más de lo esperado para su nivel. El más cercano es el {worst.AutoPitchType} "
+                                  f"({worst.usage:.0%} de uso): {w_change} en Harp Helú, típico de su tipo; {w_move}.")
+elif wd != wd:
+    risk_dot, risk_txt = ui.YEL, (f"Sin proyección a Harp Helú para este arsenal (pitches sin movimiento medido o sin categoría de altitud): "
+                                  f"no se puede estimar su riesgo en altitud.")
+else:
+    risk_dot, risk_txt = ui.RED, f"El {worst.AutoPitchType} ({worst.usage:.0%} de uso) {w_change} en Harp Helú: {w_move}."
 c = st.columns([1.55, 1])
 c[0].markdown(
     f'<div class="dr-card" style="height:100%;min-height:230px"><div style="display:flex;gap:10px;align-items:center"><span class="dr-label">Current recommendation</span>'
@@ -78,22 +98,31 @@ c[0].markdown(
     f'<div style="font:700 23px/1.3 IBM Plex Sans;color:{ui.TEXT};margin:14px 0 16px">{rec_txt}</div>'
     f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{ui.CODE.get(rec_pitch, "")}</span>{rec_pitch}</span>'
     f'<span style="margin-left:12px"><span class="dr-label">Confidence</span><br>{ui.conf_bars(rec_conf)}</span></div></div>', unsafe_allow_html=True)
+if res.stuff_harp == res.stuff_harp:
+    strength_txt = (f"Su pitch con mejor calidad proyectada en Harp Helú es el {res.AutoPitchType} "
+                    f"(Stuff+ {res.stuff_mar:.0f} a nivel del mar → {res.stuff_harp:.0f} en altitud; Fit {res.fit.split()[0].lower()} frente a su tipo).")
+else:
+    sp = core.sort_values("stuff_plus", ascending=False).iloc[0]
+    strength_txt = (f"Su pitch con mejor Stuff+ de temporada es el {sp.AutoPitchType} ({sp.stuff_plus:.0f}). Sin proyección a Harp Helú: "
+                    f"sus pitches no tienen movimiento medido o categoría de altitud.")
 c[1].markdown(
     f'<div class="dr-card" style="height:100%;min-height:230px"><div class="dr-label"><span style="color:{ui.GRN}">●</span> Primary strength</div>'
-    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin:8px 0 18px">Su pitch con mejor calidad proyectada en Harp Helú es el {res.AutoPitchType} '
-    f'(Stuff+ {res.stuff_mar:.0f} a nivel del mar → {res.stuff_harp:.0f} en altitud; Fit {res.fit.split()[0].lower()} frente a su tipo).</div>'
+    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin:8px 0 18px">{strength_txt}</div>'
     f'<div style="height:1px;background:{ui.LINE};margin-bottom:14px"></div>'
-    f'<div class="dr-label"><span style="color:{ui.RED}">●</span> Primary risk</div>'
-    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin-top:8px">El {worst.AutoPitchType} ({worst.usage:.0%} de uso) pierde {abs(worst.delta):.1f} de Stuff+ '
-    f'en Harp Helú: el aire le quita movimiento (IVB {wfp.loc["No Altitude"].ivb:.1f} → {wfp.loc["Extreme Altitude"].ivb:.1f} in).</div></div>', unsafe_allow_html=True)
+    f'<div class="dr-label"><span style="color:{risk_dot}">●</span> Primary risk</div>'
+    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin-top:8px">{risk_txt}</div></div>', unsafe_allow_html=True)
 k = st.columns([1, 1, 1, 1.6])
 for col, lab, v in [(k[0], "Stuff+", p.stuff_plus), (k[1], "Location+", p.location_plus), (k[2], "Pitching+", p.pitching_plus)]:
     col.markdown(f'<div class="dr-card" style="padding:12px 16px"><span class="dr-label">{lab}</span> <span class="dr-kpi-v" style="font-size:28px;margin-left:8px">{v:.0f}</span></div>',
                  unsafe_allow_html=True)
+if p.stuff_harp == p.stuff_harp:
+    fit_detail = (f'<span class="dr-mono">{p.stuff_mar:.0f}→{p.stuff_harp:.0f}</span>{ui.conf_bars(p.confidence)}<span class="dr-note">Δ altitud {p.delta:+.1f}'
+                  + ("" if p.delta_observado != p.delta_observado else f' · obs. {p.delta_observado:+.1f}')
+                  + ("" if p.exceso != p.exceso else f' · {"menos" if p.exceso >= 0 else "más"} de lo esperado ({p.exceso:+.1f})') + '</span>')
+else:
+    fit_detail = '<span class="dr-note">Sin proyección a Harp Helú (pitches sin movimiento medido o sin categoría de altitud)</span>'
 k[3].markdown(f'<div class="dr-card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><span class="dr-label">Harp Helú Fit</span>{ui.fit_pill(p.fit)}'
-              f'<span class="dr-mono">{p.stuff_mar:.0f}→{p.stuff_harp:.0f}</span>{ui.conf_bars(p.confidence)}<span class="dr-note">Δ altitud {p.delta:+.1f}'
-              + ("" if p.delta_observado != p.delta_observado else f' · obs. {p.delta_observado:+.1f}')
-              + f' · {"menos" if p.exceso >= 0 else "más"} de lo esperado ({p.exceso:+.1f})</span></div>', unsafe_allow_html=True)
+              f'{fit_detail}</div>', unsafe_allow_html=True)
 
 # ---------------- arsenal + fingerprint ----------------
 st.write("")
@@ -148,7 +177,17 @@ with c[1]:
 # ---------------- adaptación ----------------
 st.write("")
 st.markdown('<span class="dr-h2">Harp Helú Adaptation</span> <span class="dr-note">&nbsp;Nivel del mar vs. Extreme Altitude (mismo pitch)</span>', unsafe_allow_html=True)
-top3 = A[A.n >= 50].head(3)
+
+def has_projection(a):
+    """El pitch tiene Δ de altitud y movimiento en ambos entornos (fingerprint); si no, no hay lectura de adaptación."""
+    envs = set(fac[fac.AutoPitchType == a.AutoPitchType].env)
+    return a.delta == a.delta and {"No Altitude", "Extreme Altitude"} <= envs
+
+
+top3 = A[(A.n >= 50) & A.apply(has_projection, axis=1)].head(3) if len(A) else A
+if top3.empty:
+    st.markdown('<div class="dr-card dr-note">Sin proyección a Harp Helú para este pitcher: sus pitches no tienen movimiento medido '
+                'o categoría de altitud.</div>', unsafe_allow_html=True)
 cols = st.columns(max(len(top3), 1))
 for col, (_, a) in zip(cols, top3.iterrows()):
     g = fac[fac.AutoPitchType == a.AutoPitchType].set_index("env")
@@ -195,6 +234,8 @@ ev_note = {"Robust": "Evidencia Robust: el efecto (variante física) se sostiene
            "Conditional": "Evidencia Conditional: el efecto va en la misma dirección que lo observado, pero sin confirmarse con certeza en ambas temporadas.",
            "Uncertain": "Evidencia Uncertain: efecto pequeño o inestable para este tipo de pitch, o muestra limitada."}
 for _, a in A[A.n >= 50].iterrows():
+    if not has_projection(a):
+        continue
     g = fac[fac.AutoPitchType == a.AutoPitchType].set_index("env")
     title = f"{a.AutoPitchType} · {a.action} · Δ {a.delta:+.1f} Stuff+ · {a.evidence}"
     with st.expander(title, expanded=(a.AutoPitchType == (focus or rec_pitch))):
