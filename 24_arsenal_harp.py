@@ -8,7 +8,8 @@ Salidas (CSV en la raiz y parquet en dashboard/data):
   24_arsenal_composicion   Stuff+ del arsenal (ponderado por uso) por composicion = tipos con uso
                            >= 10%; solo composiciones con >= 10 pitchers. IC95% bootstrap por pitcher.
   24_arsenal_rectas        Cuartiles de % de rectas (Four-Seam + Sinker) y pendiente por +10 pp de
-                           rectas sobre el Stuff+ a nivel del mar, en Harp Helu y sobre el delta.
+                           rectas sobre el Stuff+ a nivel del mar, en Harp Helu y sobre el delta. Cada
+                           cuartil trae tambien la tasa de roletazos real (gb_rate, ver 24_arsenal_contraste).
   24_arsenal_mezcla        Descomposicion Stuff+ Harp = mezcla + calidad. Mezcla = Stuff+ que tendria
                            el pitcher si cada pitch suyo fuera el promedio de liga de su tipo;
                            calidad = el resto. R2 de la mezcla a nivel del mar y en Harp Helu.
@@ -18,7 +19,9 @@ Salidas (CSV en la raiz y parquet en dashboard/data):
                            swing-and-miss (chase y whiff) y casi nada el roletazo. Pendiente del valor realizado por
                            100 pitches lanzados en Extreme sobre el % de rectas (pitchers con >= 100 pitches en Extreme,
                            ponderada por esos pitches, IC bootstrap por pitcher) y tasa de roletazos de los pitchers con
-                           sinker >= 30% contra el resto.
+                           sinker >= 30% contra el resto. Tasa de roletazos = roletazos / bolas en juego sin toques
+                           (guia 22), promedio simple por pitcher, todos los parques; la calcula 23 (gb_rate) y los
+                           fouls no cuentan.
 
 La pendiente de "dependencia de la recta" en Stuff+ es casi aritmetica (las rectas pierden mas y el resto casi nada,
 por el uso de cada tipo): describe la lectura de swing-and-miss del modelo, no una recomendacion de roster.
