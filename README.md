@@ -255,3 +255,7 @@ Pendiente de decidir antes del guion: `Revision_Pre_Guion.md`. Falta registrar e
 - **B1–B3 · Entrevista:** el peso del chase (68% del Stuff+, AUC físico 0.547), la elección a posteriori de la variante física (H2: +2.30 física, +0.76 arsenal) y los límites quedan declarados en el documento técnico; las respuestas, en `Revision_Pre_Guion.md`.
 
 Detalle en la guía, sección 42.
+
+## Corrección del What-if (14/10/2026)
+
+Al preparar el guion del video apareció un error: en el Simulator, un cambio de física (por ejemplo, +2 in de IVB) subía el Stuff+ a nivel del mar pero no en Harp Helú. El esquema híbrido mezclaba la sensibilidad de dos variantes del modelo. Ahora el efecto del cambio se mide con la variante oficial en cada entorno. Detalle en la guía, sección 42.9.

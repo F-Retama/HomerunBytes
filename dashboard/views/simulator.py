@@ -242,12 +242,12 @@ with tabs[1]:
     with c[2]:
         loc_s, lp = E.score("location", *E.frame(scen, ctx=ctx))
         if pop_rows is not None:  # población del escenario (los mismos pitches que el What-if), no un pitch promedio (guía 37.5)
-            sea_s, a_s = E._shift(E.sea_level(pop_rows), shifts), pop_ars
+            sea_s, a_s = E.sea_level(pop_rows), pop_ars
             if len(sea_s) > E.MAX_GRID_ROWS:
                 keep = np.sort(np.random.default_rng(0).choice(len(sea_s), E.MAX_GRID_ROWS, replace=False))
                 sea_s, a_s = sea_s.iloc[keep].reset_index(drop=True), a_s[keep]
             at = pd.DataFrame([{"env": e, "label": engine.ENV_LABEL[e],
-                                "pitching_plus": float(E.population_pitching(sea_s, a_s, ctx, np.array([px]), np.array([pz]), e)["pitching_plus"][0])}
+                                "pitching_plus": float(E.population_pitching(sea_s, a_s, ctx, np.array([px]), np.array([pz]), e, shifts)["pitching_plus"][0])}
                                for e in engine.ENVS]).set_index("env")
         else:
             at = E.altitude_table(scen, fb_s, us, ctx=ctx).set_index("env")

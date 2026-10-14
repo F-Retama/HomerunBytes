@@ -137,9 +137,24 @@ class Engine:
         """Stuff+ medio de los pitches reales del pitcher en cada entorno, con desplazamientos what-if
         (sumados a cada pitch a nivel del mar). hybrid=True (titular, guía 38): nivel = Stuff+ oficial a nivel
         del mar y efecto de altitud = variante física; con shifts vacíos reproduce la proyección de 22.
-        hybrid=False: todo con la variante dada por ars (sensibilidad)."""
-        sea = self._shift(self.sea_level(rows), shifts)
-        return self._hybrid(sea, ars) if hybrid else self._score_envs(sea, ars)
+        hybrid=False: todo con la variante dada por ars (sensibilidad).
+        Con shifts, el EFECTO DEL CAMBIO se mide con la variante oficial en cada entorno y se suma a la proyeccion
+        hibrida del pitch actual: a nivel del mar el escenario es exactamente el Stuff+ oficial. Mezclar la
+        variante fisica en el cambio (su sensibilidad al IVB es otra) cancelaba ganancias en altitud."""
+        base = self.sea_level(rows)
+        if not hybrid:
+            return self._score_envs(self._shift(base, shifts), ars)
+        out = self._hybrid(base, ars)
+        if not any(abs(d) > 1e-12 for d in (shifts or {}).values()):
+            return out
+        off0 = self._score_envs(base, ars).set_index("env")
+        off1 = self._score_envs(self._shift(base, shifts), ars).set_index("env").reindex(off0.index)
+        out = out.set_index("env")
+        for col in ["stuff_plus"] + [f"p_{c}" for c in SHOW]:
+            out[col] = out[col] + off1[col] - off0[col]
+        for col in ["IVB", "HB"]:
+            out[col] = off1[col]
+        return out.reset_index()
 
     def _hybrid(self, sea, ars):
         off = self._score_envs(sea, ars).set_index("env")
@@ -150,6 +165,8 @@ class Engine:
         return out.reset_index()
 
     def _shift(self, sea, shifts):
+        """Desplaza la fisica de cada pitch y sus diferencias contra la recta. La recta de referencia es HISTORICA
+        (temporadas anteriores, fold-safe), asi que un cambio en la recta misma tambien mueve su diferencia."""
         sea = sea.copy()
         for f, d in (shifts or {}).items():
             if abs(d) < 1e-12:
@@ -248,7 +265,7 @@ class Engine:
             big[k] = pd.Categorical([ctx.get(k, dflt)] * len(big), categories=self.cats[k])
         return big
 
-    def population_pitching(self, sea, ars, ctx, xs, ys, env):
+    def population_pitching(self, sea, ars, ctx, xs, ys, env, shifts=None):
         """Pitching+, probabilidades y valor del contacto PROMEDIO sobre los pitches reales (no un pitch promedio,
         guia 37.5: el modelo no es lineal) en cada ubicacion, con el esquema hibrido de la guia 38: nivel = variante
         oficial a nivel del mar; efecto del entorno = variante fisica (sin arsenal)."""
@@ -266,6 +283,11 @@ class Engine:
         if env != "No Altitude":
             p0, p1 = evaluate(sea_x, a_phys), evaluate(self.to_env(big, env), a_phys)
             out = {k: out[k] + p1[k] - p0[k] for k in out}
+        if shifts and any(abs(d) > 1e-12 for d in shifts.values()):
+            # efecto del cambio what-if con la variante oficial en el mismo entorno (igual que population_table)
+            big1 = self._shift(big, shifts)
+            e0, e1 = evaluate(self.to_env(big, env), a_off), evaluate(self.to_env(big1, env), a_off)
+            out = {k: out[k] + e1[k] - e0[k] for k in out}
         return {k: v.reshape(n, L).mean(axis=0) for k, v in out.items()}
 
     def grid_rows(self, pid, ptype):
