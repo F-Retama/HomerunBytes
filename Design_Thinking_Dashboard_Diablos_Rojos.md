@@ -1,5 +1,14 @@
 # Design Thinking — Dashboard / Pitching Decision System para Harp Helú
 
+> **Documento histórico (30/09/2026).** Es el ejercicio de diseño original y no se actualiza. El producto construido difiere en varios puntos:
+>
+> - **Home vs Away:** el dataset no indica local ni visitante, así que la comparación es por categoría de altitud (nivel del mar, Medium, Extreme). No hay Home/Away Strategy Card.
+> - **Game:** se construyó en V1 como lectura táctica por count y lado del bateador, sin recomendar "el mejor pitch".
+> - **No construido:** desglose del Fit, what-if de porcentajes de uso, recomendador de pitch mix y de secuencias, comparación entre experimentos guardados y Player › History.
+> - **Definiciones vigentes:** Harp Helú Fit = calidad proyectada en Harp Helú; alertas = pierde más de lo esperado para su nivel y tipo.
+>
+> Lo que sí se construyó y por qué está en `Dashboard_Analisis_Factibilidad.md` y en la guía, secciones 37 a 42. En el video y en el documento técnico se usa el vocabulario del producto, no el de este documento.
+
 ## 1. Objetivo
 
 Diseñar un producto que transforme la complejidad de **Stuff+**, **Location+**, **Pitching+**, arsenal y altitud en decisiones claras para el cuerpo técnico y la dirección deportiva de Diablos Rojos.

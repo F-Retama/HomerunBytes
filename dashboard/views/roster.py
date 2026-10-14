@@ -99,7 +99,7 @@ with left:
             f'<div style="font:700 19px/1.25 IBM Plex Sans;color:{ui.TEXT};margin:10px 0">{ui.esc(r.headline)}</div>'
             f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{r.code}</span>'
             f'{r.AutoPitchType}</span><span class="dr-note">{ui.esc(r.evidence_text)}</span></div></div>'
-            f'<div style="border-left:1px solid {ui.LINE};padding-left:16px;min-width:130px"><div class="dr-label">Confidence</div>'
+            f'<div style="border-left:1px solid {ui.LINE};padding-left:16px;min-width:130px"><div class="dr-label">Confianza · altitud</div>'
             f'<div style="margin-top:8px">{ui.conf_bars(r.confidence)}</div></div>'
             f'<a class="dr-btn" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}&pitch={r.AutoPitchType}">Review →</a></div>',
             unsafe_allow_html=True)
@@ -165,7 +165,8 @@ st.markdown(
     f'<div><span class="dr-h2">Roster</span> <span class="dr-note">{len(V)} pitchers · {ui.esc(source)}</span></div>'
     f'<span class="dr-note">Stuff+ = mismo arsenal llevado a nivel del mar, comparable entre pitchers (temp. = temporada tal como se lanzó, '
     f'depende de en qué parques lanzó). Harp Helú Fit = Stuff+ proyectado en Harp Helú frente a la liga. Δ altitud = efecto del aire '
-    f'sobre el mismo pitch (variante física). obs. = diferencia real Extreme − No Altitude del mismo pitcher.</span></div>'
+    f'sobre el mismo pitch (variante física). obs. = diferencia real Extreme − No Altitude del mismo pitcher. '
+    f'Barras = confianza en el efecto de altitud (evidencia de sus tipos de pitch y muestra), no en el Stuff+.</span></div>'
     f'<table class="dr-tbl"><tr><th>Pitcher</th><th>Stuff+ (mar)</th><th>Location+</th><th>Pitching+</th><th>Harp Helú Fit</th><th>Δ altitud</th>'
     f'<th>Alert</th><th>Trend · 6 sem</th><th></th></tr>{"".join(rows) or "<tr><td colspan=9 class=dr-note>Ningún pitcher coincide con los filtros.</td></tr>"}</table></div>',
     unsafe_allow_html=True)
@@ -189,7 +190,7 @@ with c1:
             + row("Harp Helú Fit", lambda r: ui.fit_pill(r.fit))
             + row("Δ altitud (obs.)", lambda r: ui.delta_fmt(r.delta) + ("" if r.delta_observado != r.delta_observado else f' <span class="dr-note">({r.delta_observado:+.1f})</span>'))
             + row("Mejor en Harp · pierde más de lo esperado", lambda r: f"{r.best_pitch} · {r.worst_pitch}")
-            + row("Confianza", lambda r: ui.conf_bars(r.confidence))
+            + row("Confianza del efecto de altitud", lambda r: ui.conf_bars(r.confidence))
             + "</table></div>", unsafe_allow_html=True)
 with c2:
     with st.expander("Lista personalizada (roster del club)"):

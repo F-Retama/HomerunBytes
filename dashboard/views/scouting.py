@@ -106,10 +106,12 @@ with tabs[0]:
                     unsafe_allow_html=True)
 
         # ---- Mapa de movimiento: más vs. menos efectivos ----
-        MM = data.movement_map(year)
-        mt = MM[MM.AutoPitchType == t]
         st.markdown(f'<div style="margin-top:22px"><span class="dr-h2">Mapa de movimiento</span> <span class="dr-note">&nbsp;{t} de la liga en {year}: '
-                    f'los más y los menos efectivos en Harp Helú</span></div>', unsafe_allow_html=True)
+                    f'los más y los menos efectivos</span></div>', unsafe_allow_html=True)
+        eff_lab = {"whiff": "Whiff real", "chase": "Chase real", "stuff": "Stuff+ proyectado"}
+        eff_by = st.segmented_control("Efectividad según", list(eff_lab), format_func=eff_lab.get, default="whiff", key="mm_by") or "whiff"
+        MM = data.movement_map(year, by=eff_by)
+        mt = MM[MM.AutoPitchType == t]
         if (mt.grupo != "Resto").sum() < 6:
             st.info(f"No hay suficientes {t} (pitcher × tipo con ≥ 50 pitches) para separar los más y los menos efectivos.")
         else:
@@ -123,18 +125,24 @@ with tabs[0]:
                     fig.add_trace(go.Scatter(x=[g_[f"hb_{env_k}"].mean()], y=[g_[f"ivb_{env_k}"].mean()], mode="markers", name=f"Centro · {grp.lower()}",
                                              marker=dict(size=20, symbol="diamond-open", color=ui.GROUP_COLOR[grp], line=dict(width=3)), hoverinfo="skip"))
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            mt = mt.assign(obs_whiff_pct=100 * mt.obs_whiff, obs_chase_pct=100 * mt.obs_chase)
             hi_, lo_ = mt[mt.grupo == "Más efectivos"], mt[mt.grupo == "Menos efectivos"]
             cmp_rows = "".join(
                 f'<tr><td>{lab}</td><td class="dr-mono" style="color:{ui.GROUP_COLOR["Más efectivos"]}"><b>{fmt.format(hi_[c].mean())}</b></td>'
                 f'<td class="dr-mono" style="color:{ui.GROUP_COLOR["Menos efectivos"]}">{fmt.format(lo_[c].mean())}</td>'
                 f'<td class="dr-mono">{fmt.replace("{:", "{:+").format(hi_[c].mean() - lo_[c].mean())}</td></tr>'
-                for lab, c, fmt in [("Stuff+ en Harp Helú", "stuff_harp", "{:.1f}"), ("Velocidad (mph)", "velo", "{:.1f}"), ("IVB en Harp Helú (in)", "ivb_harp", "{:.1f}"),
+                for lab, c, fmt in [("Whiff real por pitch (%)", "obs_whiff_pct", "{:.1f}"), ("Chase real (%)", "obs_chase_pct", "{:.1f}"),
+                                    ("Stuff+ en Harp Helú", "stuff_harp", "{:.1f}"), ("Velocidad (mph)", "velo", "{:.1f}"), ("IVB en Harp Helú (in)", "ivb_harp", "{:.1f}"),
                                     ("HB en Harp Helú (in)", "hb_harp", "{:.1f}"), ("IVB a nivel del mar (in)", "ivb_mar", "{:.1f}"),
                                     ("Spin (rpm)", "spin", "{:.0f}"), ("Δ altitud (Stuff+)", "delta", "{:.1f}")])
             mc[1].markdown(f'<div class="dr-card" style="padding:0;margin-top:44px"><table class="dr-tbl"><tr><th></th><th>Más efectivos</th><th>Menos efectivos</th>'
                            f'<th>Diferencia</th></tr>{cmp_rows}</table><div class="dr-note" style="padding:10px 14px">Cada marca es un pitcher × tipo con ≥ 50 '
-                           f'pitches ({len(mt)} en total). Más / menos efectivos = quintil alto / bajo de Stuff+ proyectado en Harp Helú dentro del tipo '
-                           f'({len(hi_)} y {len(lo_)}). Movimiento en convención de diestro; en Harp Helú es el observado si hay ≥ 20 pitches allí y si no el '
+                           f'pitches ({len(mt)} en total). Más / menos efectivos = quintil alto / bajo de {data.EFFECT_BY[eff_by][1].lower()} dentro del tipo '
+                           f'({len(hi_)} y {len(lo_)}). '
+                           + ("Whiff y chase son resultados reales de la temporada en todos los parques (whiff de un año al siguiente: correlación 0.67), "
+                              "así que el mapa no depende del modelo. " if eff_by != "stuff" else
+                              "Con Stuff+ el mapa muestra el movimiento que el propio modelo premia: es una lectura del modelo, no una validación. ")
+                           + f'Movimiento en convención de diestro; en Harp Helú es el observado si hay ≥ 20 pitches allí y si no el '
                            f'proyectado. Promedios simples por pitcher.</div></div>', unsafe_allow_html=True)
 
 # =============== Arsenal ideal ===============
@@ -152,16 +160,29 @@ with tabs[5]:
             sl_ = ar[ar.grupo.str.startswith("Pendiente")].set_index("grupo")
             s_mar, s_harp, s_d = (sl_.loc[k] for k in sl_.index)
             best = ac.iloc[0]
+            CT = data.load("arsenal_contraste") if data.has("arsenal_contraste") else None
+            ct = CT[CT.year == year].set_index("medida") if CT is not None else None
+            k_val = "Valor real por 100 pitches en Extreme: pendiente por +10 pp de rectas"
+            k_si, k_re = "Tasa de roletazos: sinker >= 30% del arsenal", "Tasa de roletazos: resto"
+            real_txt = ""
+            if ct is not None and k_val in ct.index:
+                v = ct.loc[k_val]
+                real_txt = (f"En resultados reales no se ve ese costo: el valor por 100 pitches lanzados en altitud no cambia con el porcentaje de rectas "
+                            f"({v.valor:+.2f} carreras por +10 pp [{v.ci95_lo:+.2f}, {v.ci95_hi:+.2f}], {int(v.n_pitchers)} pitchers). ")
+            if ct is not None and k_si in ct.index and k_re in ct.index:
+                real_txt += (f"Y los pitchers con mucho sinker inducen más roletazos ({ct.loc[k_si].valor:.0%} contra {ct.loc[k_re].valor:.0%}), que en altitud "
+                             f"valen casi el doble (H3) y el Stuff+ casi no pondera.")
             st.markdown(
                 f'<div class="dr-card"><div class="dr-label">¿Qué arsenal produce el Stuff+ más alto en Harp Helú? · {year}</div>'
-                f'<div style="font:600 15px/1.5 IBM Plex Sans;margin-top:8px">El que depende menos de la recta y la acompaña con pitches que el aire casi no toca '
-                f'(slider, cutter, changeup). Cada +10 puntos porcentuales de rectas (Four-Seam + Sinker) cuestan {abs(s_d.delta):.2f} de Stuff+ adicionales en '
-                f'Harp Helú [{s_d.ci95_lo:+.2f}, {s_d.ci95_hi:+.2f}]; a nivel del mar el porcentaje de rectas no cambia el Stuff+ '
+                f'<div style="font:600 15px/1.5 IBM Plex Sans;margin-top:8px">En Stuff+, el que depende menos de la recta y la acompaña con pitches que el aire '
+                f'casi no toca (slider, cutter, changeup): cada +10 puntos porcentuales de rectas (Four-Seam + Sinker) cuestan {abs(s_d.delta):.2f} de Stuff+ '
+                f'adicionales en Harp Helú [{s_d.ci95_lo:+.2f}, {s_d.ci95_hi:+.2f}]; a nivel del mar no cambian el Stuff+ '
                 f'({s_mar.delta:+.2f} [{s_mar.ci95_lo:+.2f}, {s_mar.ci95_hi:+.2f}]).</div>'
-                f'<div class="dr-note" style="margin-top:8px">Aun así, la mezcla de tipos explica solo {am.r2_mezcla_harp:.0%} de las diferencias de Stuff+ entre '
-                f'pitchers en Harp Helú ({am.r2_mezcla_nivel_mar:.0%} a nivel del mar): pesa más la calidad de cada pitch que el repertorio. '
-                f'Descriptivo, no causal: quién lanza qué repertorio no es aleatorio, y el Stuff+ califica cada pitch por separado '
-                f'(no mide cuánto ayuda la recta a que funcionen los demás).</div></div>', unsafe_allow_html=True)
+                + (f'<div style="font:600 14px/1.5 IBM Plex Sans;margin-top:8px;color:{ui.YEL}">{real_txt}</div>' if real_txt else '')
+                + f'<div class="dr-note" style="margin-top:8px">Lectura: es una vista de swing-and-miss (el Stuff+ pondera sobre todo chase y whiff), no una '
+                f'recomendación de roster; no descartar a un sinkerballer por ella. La pendiente es casi aritmética: las rectas pierden más en altitud y el resto '
+                f'casi nada. La mezcla de tipos explica solo {am.r2_mezcla_harp:.0%} de las diferencias de Stuff+ entre pitchers en Harp Helú '
+                f'({am.r2_mezcla_nivel_mar:.0%} a nivel del mar). Descriptivo, no causal.</div></div>', unsafe_allow_html=True)
             c = st.columns([1.25, 1], gap="large")
             with c[0]:
                 st.markdown('<div style="margin-top:14px"><span class="dr-h2">Stuff+ en Harp Helú por composición del arsenal</span> '
@@ -187,9 +208,10 @@ with tabs[5]:
             with c[1]:
                 q = ar[~ar.grupo.str.startswith("Pendiente")]
                 qrows = "".join(f'<tr><td>{r.grupo}</td><td class="dr-mono">{r.pct_rectas:.0f}%</td><td class="dr-mono">{r.stuff_mar:.1f}</td>'
-                                f'<td class="dr-mono"><b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td></tr>' for r in q.itertuples())
+                                f'<td class="dr-mono"><b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td>'
+                                f'<td class="dr-mono">{"—" if getattr(r, "gb_rate", float("nan")) != getattr(r, "gb_rate", float("nan")) else f"{r.gb_rate:.0%}"}</td></tr>' for r in q.itertuples())
                 st.markdown(f'<div class="dr-card" style="padding:0;margin-top:14px"><div style="padding:12px 16px"><span class="dr-h2">Dependencia de la recta</span></div>'
-                            f'<table class="dr-tbl"><tr><th>Cuartil</th><th>% rectas</th><th>Stuff+ mar</th><th>Stuff+ Harp</th><th>Δ</th></tr>{qrows}</table>'
+                            f'<table class="dr-tbl"><tr><th>Cuartil</th><th>% rectas</th><th>Stuff+ mar</th><th>Stuff+ Harp</th><th>Δ</th><th>Roletazos (real)</th></tr>{qrows}</table>'
                             f'<div class="dr-note" style="padding:10px 14px">Pendiente en Harp Helú por +10 pp de rectas: {s_harp.delta:+.2f} '
                             f'[{s_harp.ci95_lo:+.2f}, {s_harp.ci95_hi:+.2f}] de Stuff+. {int(q.n_pitchers.sum())} pitchers con ≥ 100 pitches.</div></div>',
                             unsafe_allow_html=True)
@@ -371,7 +393,7 @@ with tabs[2]:
                        f'<td class="dr-mono">{o.IVB_harp:.1f} / {o.HB_harp:.1f}</td><td class="dr-mono">{o.whiff_harp:.1%}</td><td class="dr-mono">{o.perfil}</td>'
                        f'<td class="dr-note" style="color:{ui.YEL}">{"⚠ " + "; ".join(o.warn) if o.warn else ""}</td></tr>' for o in O.itertuples())
         st.markdown(f'<div class="dr-card" style="padding:0;margin-top:12px"><table class="dr-tbl"><tr><th>Pitch</th><th>Uso</th><th>Stuff+ mar → Harp</th><th>Δ</th>'
-                    f'<th>Fit vs. su tipo</th><th>IVB / HB en Harp</th><th>Whiff en Harp</th><th>Rasgos del perfil</th><th></th></tr>{rows}</table>'
+                    f'<th>Fit vs. su tipo</th><th>IVB / HB en Harp</th><th>Whiff en Harp (aprox.)</th><th>Rasgos del perfil</th><th></th></tr>{rows}</table>'
                     f'<div class="dr-note" style="padding:10px 14px">Cada pitch se simula con la dispersión real de la liga (tipo y mano) centrada en sus métricas. '
                     f'Fit = percentil de su Stuff+ proyectado en Harp Helú entre pitches del mismo tipo en la liga (2026). Δ = variante física '
                     f'(titular); "arsenal" = sensibilidad con el modelo de arsenal cuando difiere ≥ 0.7. "Rasgos del perfil" = cuántos rasgos del perfil ideal cumple '
@@ -431,7 +453,7 @@ with tabs[3]:
             + row("Location+ / Pitching+", lambda c_: f'<span class="dr-mono">{c_["loc"]}</span>')
             + row("Valor realizado / 100", lambda c_: f'<span class="dr-mono">{c_["val"]}</span>')
             + row("Historial Stuff+", lambda c_: c_["hist"])
-            + row("Confianza", lambda c_: ui.conf_bars(c_["conf"]))
+            + row("Confianza del efecto de altitud", lambda c_: ui.conf_bars(c_["conf"]))
             + row("Variante del modelo", lambda c_: f'<span class="dr-note">{c_["variant"]}</span>')
             + f'<tr><td colspan="{len(cols) + 1}" class="dr-label" style="padding-top:16px">Arsenal · Stuff+ mar → Harp (uso)</td></tr>' + ars_rows
             + "</table></div>", unsafe_allow_html=True)

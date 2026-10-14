@@ -121,10 +121,15 @@ def has(name):
     return (DATA / f"{name}.parquet").exists()
 
 
-def movement_map(year, min_n=50, q=0.20):
+EFFECT_BY = {"whiff": ("obs_whiff", "Whiff real por pitch"), "chase": ("obs_chase", "Chase real"),
+             "stuff": ("stuff_harp", "Stuff+ proyectado en Harp Helú")}
+
+
+def movement_map(year, min_n=50, q=0.20, by="whiff"):
     """Mapa de movimiento de la liga: una fila por pitcher x tipo (>= min_n pitches) con su movimiento a
-    nivel del mar y en Harp Helú (convención de diestro) y su grupo de efectividad: quintil alto o bajo
-    de Stuff+ proyectado en Harp Helú dentro de su tipo de pitch."""
+    nivel del mar y en Harp Helú (convención de diestro) y su grupo de efectividad: quintil alto o bajo dentro
+    de su tipo de pitch según `by`: resultados reales (whiff o chase observados, todos los parques) o el
+    Stuff+ proyectado (lectura del modelo; circular si se usa para validar el propio modelo)."""
     a = load("arsenal")
     a = a[(a.year == year) & (a.n >= min_n) & a.stuff_harp.notna()]
     f = load("fingerprint")
@@ -135,8 +140,12 @@ def movement_map(year, min_n=50, q=0.20):
     for _t, g in d.groupby("AutoPitchType"):
         if len(g) < 20:
             continue
-        lo, hi = g.stuff_harp.quantile([q, 1 - q])
-        d.loc[g.index[g.stuff_harp >= hi], "grupo"] = "Más efectivos"
-        d.loc[g.index[g.stuff_harp <= lo], "grupo"] = "Menos efectivos"
+        col = EFFECT_BY[by][0]
+        v = g[col].dropna()
+        if len(v) < 20:
+            continue
+        lo, hi = v.quantile([q, 1 - q])
+        d.loc[v.index[v >= hi], "grupo"] = "Más efectivos"
+        d.loc[v.index[v <= lo], "grupo"] = "Menos efectivos"
     return d[["pitcher_anon_id", "AutoPitchType", "n", "usage", "velo", "spin", "stuff_mar", "stuff_harp", "delta",
-              "ivb_mar", "hb_mar", "ivb_harp", "hb_harp", "grupo"]]
+              "obs_whiff", "obs_chase", "ivb_mar", "hb_mar", "ivb_harp", "hb_harp", "grupo"]]

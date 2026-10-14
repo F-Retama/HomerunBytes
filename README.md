@@ -231,3 +231,27 @@ Detalle en la guía, sección 40.
 - **Multiplataforma:** `correr_prototipo.py` reemplaza los pasos manuales en macOS, Windows y Linux; `requirements.txt` acota pandas < 3, numpy < 2.4 y scikit-learn 1.6.x; el estado del dashboard se guarda en UTF-8.
 
 Pendiente de decidir antes del guion: `Revision_Pre_Guion.md`. Falta registrar estos cambios en la guía y la bitácora.
+
+## Ajustes posteriores al PR 6 (14/10/2026)
+
+- **Player:** la tarjeta principal y la tabla del arsenal muestran el Stuff+ a nivel del mar, igual que el Roster; el de temporada queda como dato secundario.
+- **Exceso del pitcher (`23`):** promedia solo los tipos con valor; antes rellenaba con 0 los tipos sin exceso.
+- **`correr_prototipo.py`:** guarda un sello por paso (`prototipo_logs/sellos.json`) con el hash del script que generó cada salida. Si un script cambió, vuelve a correr ese paso y los siguientes. Las salidas sin sello (copiadas de otro equipo o anteriores al runner) se reutilizan con un aviso; `--todo` las regenera.
+- **Cifras 2026 regeneradas en esta máquina:** 369 pitchers con proyección; alertas 38 rojas, 65 amarillas y 266 verdes. Detalle en la guía, sección 41.
+
+## Revisión previa al guion: A2, A4, A5, A6 y A7 (14/10/2026)
+
+- **A2 · Game y Simulator › Ubicación:** el Pitching+ por entorno usa el mismo esquema híbrido que el resto (nivel oficial a nivel del mar + efecto físico). El slider ya no pierde en Harp Helú por la separación contra la recta.
+- **A4 · Mapa de más y menos efectivos:** se define por el whiff real de la temporada (o el chase real), no por el propio Stuff+. Validación no circular: en los seis tipos, el grupo con más whiff real tiene más Stuff+ proyectado.
+- **A5 · Alertas:** Adjust y Review exigen además perder al menos 1 punto de más. En 2026, Review baja de 176 a 126 y las alertas quedan en 38 rojas, 51 amarillas y 280 verdes.
+- **A6 · Oportunidades y mejor pitch:** por percentil dentro del tipo, porque la escala de Stuff+ no se recentra por tipo. Las rectas pasan de 1 a 31 Four-Seam y 25 Sinker en oportunidades.
+- **A7 · Arsenal ideal:** contrastado con resultados reales. En el valor realizado en altitud no se detecta el costo de las rectas, y los sinkerballers inducen más roletazos (41% contra 35–36%). Se presenta como lectura de swing-and-miss, no como recomendación de roster.
+
+- **A3 · Game y Simulator › Ubicación:** promedian los pitches reales del pitcher (muestra fija de hasta 150 por tipo) en lugar de un "pitch promedio", igual que Player y el What-if.
+
+- **A8 · Confianza:** se etiqueta "Confianza · altitud", porque mide la evidencia del efecto de altitud, no la del Stuff+.
+- **A9 · Probabilidades:** whiff, chase y strike cantado se muestran como niveles aproximados (≈), con una nota de que los cambios entre entornos son más confiables que los niveles.
+- **A10 · Documentos:** `Design_Thinking_Dashboard_Diablos_Rojos.md` queda marcado como histórico.
+- **B1–B3 · Entrevista:** el peso del chase (68% del Stuff+, AUC físico 0.547), la elección a posteriori de la variante física (H2: +2.30 física, +0.76 arsenal) y los límites quedan declarados en el documento técnico; las respuestas, en `Revision_Pre_Guion.md`.
+
+Detalle en la guía, sección 42.

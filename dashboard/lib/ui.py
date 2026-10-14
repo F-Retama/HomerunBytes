@@ -93,7 +93,7 @@ def conf_bars(conf, with_label=True):
     lv = CONF_LEVEL.get(conf, 1)
     bars = "".join(f'<span style="display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:2px;'
                    f'background:{"#c6c8cd" if lv >= k else "#3a3c42"}"></span>' for k in (1, 2, 3))
-    lab = f' <span style="font:600 12px IBM Plex Sans;color:{TEXT}">{conf}</span> <span class="dr-note">evidence</span>' if with_label else ""
+    lab = f' <span style="font:600 12px IBM Plex Sans;color:{TEXT}">{conf}</span> <span class="dr-note">· altitud</span>' if with_label else ""
     return f'<span style="white-space:nowrap">{bars}{lab}</span>'
 
 
@@ -168,8 +168,8 @@ def movement_traces(fig, d, env="harp", size=8, legend=True):
             x=g[f"hb_{env}"], y=g[f"ivb_{env}"], mode="markers", name=f"{grp} (liga)" if grp != "Resto" else "Resto de la liga",
             showlegend=legend, marker=dict(size=size if grp != "Resto" else size - 3, color=GROUP_COLOR[grp], opacity=0.85 if grp != "Resto" else 1,
                                            symbol="circle" if grp != "Menos efectivos" else "x"),
-            customdata=list(zip(g.pitcher_anon_id.str.replace("pitcher_", ""), g.AutoPitchType, g.stuff_harp, g.velo, g.n)),
-            hovertemplate="Pitcher %{customdata[0]} · %{customdata[1]}<br>Stuff+ Harp Helú %{customdata[2]:.1f}<br>"
+            customdata=list(zip(g.pitcher_anon_id.str.replace("pitcher_", ""), g.AutoPitchType, g.stuff_harp, g.velo, g.n, 100 * g.obs_whiff)),
+            hovertemplate="Pitcher %{customdata[0]} · %{customdata[1]}<br>Whiff real %{customdata[5]:.1f}% · Stuff+ Harp Helú %{customdata[2]:.1f}<br>"
                           "HB %{x:.1f} in · IVB %{y:.1f} in · %{customdata[3]:.1f} mph<br>n %{customdata[4]}<extra></extra>"))
     return fig
 

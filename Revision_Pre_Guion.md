@@ -1,6 +1,6 @@
 # Revisión antes del guion: puntos que el jurado podría notar
 
-Revisión del dashboard y del modelo hecha el 12/10/2026 sobre la rama `arreglos-dashboard-video`, con el pipeline regenerado localmente desde `stuff_model_df.parquet` (las cifras coinciden con la guía con diferencias de centésimas). **Ningún punto de esta lista está corregido todavía**: la idea es decidir, antes de escribir el guion del video (entrega 22/10/2026), si cada uno se **arregla**, se **explica** o **no se muestra**.
+Revisión del dashboard y del modelo hecha el 12/10/2026 sobre la rama `arreglos-dashboard-video`, con el pipeline regenerado localmente desde `stuff_model_df.parquet` (las cifras coinciden con la guía con diferencias de centésimas). **Estado al 14/10/2026: A2 a A10 resueltos (A11 queda fuera del relato del video) y B1 a B3 incorporados al documento técnico en la rama `feature/ajustes-post-pr6` (guía §42); el resto sigue abierto.** Al escribirse, ningún punto estaba corregido: la idea es decidir, antes de escribir el guion del video (entrega 22/10/2026), si cada uno se **arregla**, se **explica** o **no se muestra**.
 
 Por qué importa: el reto evalúa cuatro criterios con 25% cada uno (calidad del modelo, robustez fuera de muestra, integración arsenal + altitud y aplicabilidad). Los puntos del bloque A afectan sobre todo **aplicabilidad** (lo que ve un coach o el director deportivo); los del bloque B son preguntas probables en la **entrevista de 10 minutos**.
 
@@ -98,16 +98,20 @@ Player › History (el wireframe tiene "View History"), comparación entre exper
 ### B1. Stuff+ lo domina su componente más débil
 
 - **Evidencia:** pesos oficiales de Stuff+ 2026: chase 0.680 y whiff 0.313. AUC de la familia física en 2026 (`18_component_metrics.csv`): chase **0.547**, whiff **0.628**. Es decir, 68% del Stuff+ viene de la predicción de chase que la física apenas logra (el chase depende sobre todo de la ubicación). La regla de pesos (guía §33.6) se adoptó después de descartar los pesos propios de la familia por un orden por tipo implausible.
-- **Respuesta sugerida:** el Stuff+ se valida a nivel pitcher, no a nivel pitch: split-half 0.99, año a año 0.78/0.77 y generaliza a pitchers no vistos y a Extreme (guía §35). La versión con pesos iguales predice casi igual el valor de la temporada siguiente (0.144 contra 0.152; guía §33.7), así que el orden no depende de esa elección.
+- **Respuesta sugerida:** el Stuff+ se valida a nivel pitcher, no a nivel pitch: split-half 0.99, año a año 0.78/0.77 y generaliza a pitchers no vistos y a Extreme (guía §35). La versión con pesos iguales predice casi igual el valor de la temporada siguiente (correlación 0.12 [−0.02, 0.26] contra 0.15 [0.04, 0.27] con los pesos oficiales; `18_pitcher_level_check.csv`), así que el orden no depende de esa elección. Además, en altitud extrema el quintil alto de Stuff+ genera de 5.9 a 12.1 pp más chase real que el bajo (`22_profile_outcome_validation.csv`): el componente débil por pitch sí se traduce en chase real al agregar. Y al revés, sin usar el modelo: el 20% con más whiff real de cada tipo tiene más Stuff+ en los seis tipos (guía §42.2).
+- **Estado (14/10):** incorporado al documento técnico, sección 3.5.
 
 ### B2. La variante titular de altitud se eligió y se confirmó con el mismo dato
 
 - **Evidencia:** la variante física se volvió titular porque coincide con el contraste observado del mismo pitcher (guía §38.1), y el nivel "Robusto" exige confirmación observada (guía §36.3): el mismo dato se usa para elegir y para confirmar. H2 cambia de magnitud con esa elección: changeup y splitter pierden 0.76 menos que los pitches de spin con la variante con arsenal, y 2.30 menos con la física.
-- **Respuesta sugerida:** decirlo como decisión a posteriori, mostrar ambas variantes para H2 y explicar el argumento físico (la variante con arsenal también castiga que la separación contra la recta se encoja, algo que en el mismo pitcher observado no aparece).
+- **Respuesta sugerida:** decirlo como decisión a posteriori, mostrar ambas variantes para H2 y explicar el argumento físico (la variante con arsenal también castiga que la separación contra la recta se encoja, algo que en el mismo pitcher observado no aparece). Verificado: H2 = +2.30 [+1.99, +2.72] con la variante física y +0.76 con la de arsenal (`21_delta_rows.parquet`, 2026); en las dos, changeup y splitter pierden menos.
+- **Estado (14/10):** incorporado al documento técnico (sección 6.2 y tabla de hipótesis).
 
 ### B3. Límites ya documentados
 
 Extreme Altitude agrupa varios parques (4–5 equipos locales; no solo el Harp Helú); no hay corredores en base, así que no hay run expectancy de 24 estados; barrel no se implementa (faltan tablas de xBA/xSLG); el tunneling es solo distancia del punto de release; no hay SHAP (el "Why?" es narrativo); la calibración deriva entre temporadas. Están en la guía §38.4 y deben ir en "alcance y fronteras" del documento técnico.
+
+**Estado (14/10):** todos están en la sección 8 del documento técnico; se agregó barrel y xBA/xSLG.
 
 ## Orden sugerido para decidir
 

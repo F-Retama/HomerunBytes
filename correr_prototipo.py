@@ -2,7 +2,9 @@
 
 Uso, desde la carpeta del repo y con el entorno virtual activado:
 
-    python correr_prototipo.py              corre solo los pasos cuyos resultados faltan, regenera 23 y 24,
+    python correr_prototipo.py              corre los pasos cuyos resultados faltan o se generaron con otra version de su
+                                            script (sello en prototipo_logs/), y todos los que siguen a uno que corrio;
+                                            regenera 23 y 24,
                                             verifica el motor contra los scores oficiales de 18 y abre el dashboard
     python correr_prototipo.py --todo       vuelve a correr toda la cadena desde 02
     python correr_prototipo.py --sin-abrir  prepara todo pero no abre Streamlit
@@ -16,6 +18,8 @@ Los logs de cada paso quedan en prototipo_logs/.
 """
 
 import argparse
+import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -24,6 +28,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 LOGS = ROOT / "prototipo_logs"
+# Sello de cada paso: hash del script con el que se genero su salida. Detecta salidas generadas con codigo anterior
+# (la fecha de modificacion no sirve: git la cambia al cambiar de rama aunque el contenido sea el mismo).
+STAMPS = LOGS / "sellos.json"
 # (nombre, salida que indica que el paso ya corrio o None para correrlo siempre, argumentos del script)
 STEPS = [
     ("02_features", "stuff_model_features_v1.parquet", ["02_feature_engineering.py"]),
@@ -61,10 +68,27 @@ def check_env():
         sys.exit(f"Falta stuff_model_df.parquet en {ROOT}. Copialo del material del hackathon (no viene en GitHub).")
 
 
-def run_step(name, out, args, force):
+def script_hash(path):
+    return hashlib.sha256((ROOT / path).read_bytes()).hexdigest()[:16]
+
+
+def read_stamps():
+    try:
+        return json.loads(STAMPS.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def run_step(name, out, args, force, stamps):
+    """Corre el paso y regresa True; lo omite (False) si su salida existe y su sello coincide con el script actual."""
     if not force and out and (ROOT / out).exists():
-        print(f"  - {name}: ya existe {out}, se omite")
-        return
+        sello = stamps.get(name)
+        if sello and sello != script_hash(args[0]):
+            print(f"  - {name}: {args[0]} cambio desde que se genero {out}; se vuelve a correr")
+        else:
+            nota = "" if sello else " (sin sello: si la generaste con una version anterior del codigo, usa --todo)"
+            print(f"  - {name}: ya existe {out}, se omite{nota}")
+            return False
     log = LOGS / f"{name}.log"
     print(f">> {name} (inicio {time.strftime('%H:%M')}; log en {log.relative_to(ROOT)})", flush=True)
     t0 = time.time()
@@ -76,6 +100,9 @@ def run_step(name, out, args, force):
         print("\n".join(tail))
         sys.exit(1)
     print(f"   listo en {(time.time() - t0) / 60:.0f} min", flush=True)
+    stamps[name] = script_hash(args[0])
+    STAMPS.write_text(json.dumps(stamps, indent=2), encoding="utf-8")
+    return True
 
 
 def warn_tracked():
@@ -108,8 +135,10 @@ def main():
     args = ap.parse_args()
     check_env()
     LOGS.mkdir(exist_ok=True)
+    # Si un paso corre, los siguientes tambien: sus salidas dependen de las de los anteriores.
+    force, stamps = args.todo, read_stamps()
     for name, out, step_args in STEPS:
-        run_step(name, out, step_args, args.todo)
+        force = run_step(name, out, step_args, force, stamps) or force
     ver = [l for l in (LOGS / "verificacion.log").read_text(encoding="utf-8", errors="replace").splitlines() if "max |diff|" in l]
     print("Verificacion del motor contra los scores oficiales de 18 (debe ser ~1e-14):")
     print("  " + (ver[-1] if ver else "(sin resultado; revisa prototipo_logs/verificacion.log)"))
