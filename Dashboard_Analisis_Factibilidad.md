@@ -14,7 +14,7 @@ Contraste del documento de Design Thinking y de los wireframes (Pitching Staff, 
 | "Extreme Altitude = Harp Helú" | Extreme agrupa varios parques locales (4–5 equipos locales). | Se mantiene como **proxy**, con tooltip explícito en todas las pantallas. |
 | Home vs. Away | No existe local/visitante por pitcher; solo la categoría de altitud del juego. | "Home/Away Δ" se reemplaza por **Δ altitud**: el mismo pitch en Harp Helú contra nivel del mar (modelado) y, como secundario, el **Δ observado** (Extreme − No Altitude del mismo pitcher). |
 | SP / RP | No viene en los datos. | Se **infiere** con pitches por aparición y la proporción de apariciones que empiezan en la 1.ª entrada (127 de 550 SP en 2026). Se etiqueta como inferido. |
-| Trend · 6 semanas | No hay fecha, pero el UUID v1 del PitchUID trae timestamp (2026: 24-mar a 13-jun). | ✅ Tendencia semanal real (≥ 20 pitches por semana). |
+| Trend · 6 semanas | No hay fecha, pero el UUID v1 del PitchUID trae timestamp (2026: 24-mar a 13-jun). | ✅ Tendencia semanal real (≥ 10 pitches por semana). |
 | Historial por temporada | Scores fuera de muestra para 2024–2026 (CV por pitcher, guía 35). | ✅ Historial de 3 temporadas. Las temporadas oficiales 2025 y 2026 son season-forward. |
 
 ## 2. Definiciones necesarias (no estaban en el wireframe)
@@ -27,8 +27,8 @@ Todas están implementadas en `23_dashboard_data.py`, con umbrales explícitos:
 - **Fit por pitch:** el mismo criterio, comparando contra pitches del mismo tipo en la liga.
 - **Confianza:** la de cada tipo sale de los niveles de evidencia de la guía 36. La del pitcher es Robust si ≥ 60% de sus pitches son de tipos robustos y tiene ≥ 300 pitches; Uncertain si < 150 pitches o ≥ 40% en tipos inciertos.
 - **Semáforo (acción por pitch):**
-  - Adjust: el pitch pierde más de lo esperado para su nivel y tipo (exceso en el 10% inferior de su tipo) y el tipo tiene evidencia Robusta.
-  - Review: exceso en el 25% inferior de su tipo.
+  - Adjust: el pitch pierde más de lo esperado para su nivel y tipo (exceso en el 10% inferior de su tipo y de al menos 1 punto) y el tipo tiene evidencia Robusta.
+  - Review: exceso en el 25% inferior de su tipo y de al menos 1 punto.
   - Maintain: el resto.
 
   Son prioridades de revisión, no instrucciones de uso.
@@ -41,7 +41,7 @@ Todas están implementadas en `23_dashboard_data.py`, con umbrales explícitos:
 | Elemento | Estado | Fuente / nota |
 |---|---|---|
 | KPIs (tamaño, Stuff+ medio, distribución de Fit, alertas) | ✅ | 18 (scores oficiales), 22 (proyección) |
-| Recommendation Inbox | ⚠️ | Alertas por pitcher (su pitch más afectado) y "oportunidades": pitches con Stuff+ ≥ 105 que pierden < 1.5 en altitud. **Se quitó "margen para más uso"**: el modelo no sostiene recomendaciones de pitch mix (sin política causal; el mismo documento de diseño lo excluye de V1). |
+| Recommendation Inbox | ⚠️ | Alertas por pitcher (su pitch más afectado) y "oportunidades": pitches en el 20% superior de su tipo en Harp Helú que no pierden más de lo esperado para su nivel (percentil dentro del tipo: la escala de Stuff+ no se recentra por tipo). **Se quitó "margen para más uso"**: el modelo no sostiene recomendaciones de pitch mix (sin política causal; el mismo documento de diseño lo excluye de V1). |
 | Harp Helú Roster Map (Stuff+ × adaptación) | ✅ | x = Stuff+; y = percentil de "pierde menos / más de lo esperado" para su nivel y tipo (guía 38) |
 | Tabla: Stuff+, Location+, Fit, Δ, alerta, tendencia | ✅ | Se agrega Pitching+ y el Δ observado como secundario |
 | Comparar (selección múltiple) | ✅ | Comparador rápido de 2 a 4 pitchers |

@@ -51,14 +51,15 @@ sel[2].markdown(f'<div style="display:flex;justify-content:flex-end;gap:8px;alig
 rec = I[I.AutoPitchType == focus].head(1) if focus else I.head(0)
 if rec.empty:
     rec = I.assign(o=I.alert.map({"red": 0, "yellow": 1, "green": 2})).sort_values(["o", "delta"]).head(1)
-best = A.sort_values("stuff_plus", ascending=False).iloc[0]
+# Mejor pitch = mayor percentil dentro de su tipo en Harp Helú (la escala de Stuff+ no se recentra por tipo).
+best = A.sort_values("harp_pct" if A.harp_pct.notna().any() else "stuff_plus", ascending=False).iloc[0]
 core = A[A.n >= 50] if (A.n >= 50).any() else A
 # Riesgo principal = el pitch (uso >= 10%) que pierde más DE LO ESPERADO para su nivel y tipo (exceso, guía 38.3), la misma
 # lectura que alertas e inbox. El Δ bruto casi siempre señalaba a la recta, porque los mejores pitches pierden más puntos.
 cand = A[A.usage >= 0.10] if (A.usage >= 0.10).any() else A
 worst = (cand[cand.exceso.notna()].sort_values("exceso") if cand.exceso.notna().any() else cand.sort_values("delta")).iloc[0]
 alt_core = core[core.AutoPitchType != worst.AutoPitchType]
-res = (alt_core if len(alt_core) else core).sort_values("stuff_harp", ascending=False).iloc[0]
+res = (alt_core if len(alt_core) else core).sort_values("harp_pct" if core.harp_pct.notna().any() else "stuff_harp", ascending=False).iloc[0]
 fac = data.load("fingerprint"); fac = fac[(fac.year == year) & (fac.pitcher_anon_id == pid)]
 wfp = fac[fac.AutoPitchType == worst.AutoPitchType].set_index("env")
 if focus:
@@ -97,10 +98,11 @@ c[0].markdown(
     f'<span class="dr-badge" style="background:{kind_badge[1]}24;color:{kind_badge[1]}">● {kind_badge[0]}</span></div>'
     f'<div style="font:700 23px/1.3 IBM Plex Sans;color:{ui.TEXT};margin:14px 0 16px">{rec_txt}</div>'
     f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{ui.CODE.get(rec_pitch, "")}</span>{rec_pitch}</span>'
-    f'<span style="margin-left:12px"><span class="dr-label">Confidence</span><br>{ui.conf_bars(rec_conf)}</span></div></div>', unsafe_allow_html=True)
+    f'<span style="margin-left:12px"><span class="dr-label">Confianza · altitud</span><br>{ui.conf_bars(rec_conf)}</span></div></div>', unsafe_allow_html=True)
 if res.stuff_harp == res.stuff_harp:
-    strength_txt = (f"Su pitch con mejor calidad proyectada en Harp Helú es el {res.AutoPitchType} "
-                    f"(Stuff+ {res.stuff_mar:.0f} a nivel del mar → {res.stuff_harp:.0f} en altitud; Fit {res.fit.split()[0].lower()} frente a su tipo).")
+    pct_txt = f"percentil {100 * res.harp_pct:.0f} de los {res.AutoPitchType} de la liga; " if res.harp_pct == res.harp_pct else ""
+    strength_txt = (f"Su pitch más destacado en Harp Helú frente a su tipo es el {res.AutoPitchType} "
+                    f"({pct_txt}Stuff+ {res.stuff_mar:.0f} a nivel del mar → {res.stuff_harp:.0f} en altitud).")
 else:
     sp = core.sort_values("stuff_plus", ascending=False).iloc[0]
     strength_txt = (f"Su pitch con mejor Stuff+ de temporada es el {sp.AutoPitchType} ({sp.stuff_plus:.0f}). Sin proyección a Harp Helú: "
@@ -112,9 +114,12 @@ c[1].markdown(
     f'<div class="dr-label"><span style="color:{risk_dot}">●</span> Primary risk</div>'
     f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin-top:8px">{risk_txt}</div></div>', unsafe_allow_html=True)
 k = st.columns([1, 1, 1, 1.6])
-for col, lab, v in [(k[0], "Stuff+", p.stuff_plus), (k[1], "Location+", p.location_plus), (k[2], "Pitching+", p.pitching_plus)]:
-    col.markdown(f'<div class="dr-card" style="padding:12px 16px"><span class="dr-label">{lab}</span> <span class="dr-kpi-v" style="font-size:28px;margin-left:8px">{v:.0f}</span></div>',
-                 unsafe_allow_html=True)
+# Stuff+ a nivel del mar, igual que el Roster (guía 40.1): el de temporada depende de en qué parques lanzó y queda como dato secundario.
+num = lambda v, f=".0f": "—" if v != v else format(v, f)
+for col, lab, v, sub in [(k[0], "Stuff+ · nivel del mar", p.stuff_mar, f"temp. {num(p.stuff_plus)}"), (k[1], "Location+", p.location_plus, ""),
+                         (k[2], "Pitching+", p.pitching_plus, "temporada")]:
+    col.markdown(f'<div class="dr-card" style="padding:12px 16px"><span class="dr-label">{lab}</span> <span class="dr-kpi-v" style="font-size:28px;margin-left:8px">{num(v)}</span>'
+                 f' <span class="dr-note">{sub}</span></div>', unsafe_allow_html=True)
 if p.stuff_harp == p.stuff_harp:
     fit_detail = (f'<span class="dr-mono">{p.stuff_mar:.0f}→{p.stuff_harp:.0f}</span>{ui.conf_bars(p.confidence)}<span class="dr-note">Δ altitud {p.delta:+.1f}'
                   + ("" if p.delta_observado != p.delta_observado else f' · obs. {p.delta_observado:+.1f}')
@@ -132,14 +137,16 @@ for _, a in A.iterrows():
     hi = "background:rgba(255,255,255,0.035);" if focus == a.AutoPitchType else ""
     rows.append(f'<tr style="{hi}"><td style="white-space:nowrap"><span class="dr-code">{a.code}</span> <b>{a.AutoPitchType}</b></td>'
                 f'<td style="white-space:nowrap"><span style="display:inline-block;width:{a.usage * 70:.0f}px;height:3px;background:#c6c8cd;border-radius:2px;vertical-align:middle"></span> '
-                f'<span class="dr-mono">{a.usage:.0%}</span></td><td class="dr-mono"><b>{a.stuff_plus:.0f}</b></td><td class="dr-mono">{a.location_plus:.0f}</td>'
+                f'<span class="dr-mono">{a.usage:.0%}</span></td><td class="dr-mono"><b>{num(a.stuff_mar)}</b><div class="dr-note">temp. {num(a.stuff_plus)}</div></td><td class="dr-mono">{a.location_plus:.0f}</td>'
                 f'<td>{ui.delta_fmt(a.delta)}</td><td>{ui.fit_pill(a.fit)}</td><td>{ui.action_dot(a.action)}</td><td>{ui.conf_bars(a.evidence)}</td></tr>')
 c[0].markdown(
     f'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><span class="dr-h2">Arsenal Overview</span>'
     f'<span class="dr-mono dr-note">Datos · Temporada {year}</span></div><div class="dr-card" style="padding:0"><table class="dr-tbl">'
-    f'<tr><th>Pitch</th><th>Usage</th><th>Stuff+</th><th>Loc+</th><th>Δ alt.</th><th>Fit</th><th>Action</th><th>Confidence</th></tr>'
-    f'{"".join(rows)}</table><div class="dr-note" style="padding:10px 14px">Δ alt. = efecto del aire sobre el Stuff+ del mismo pitch (variante física). '
+    f'<tr><th>Pitch</th><th>Usage</th><th>Stuff+ (mar)</th><th>Loc+</th><th>Δ alt.</th><th>Fit</th><th>Action</th><th>Confianza · altitud</th></tr>'
+    f'{"".join(rows)}</table><div class="dr-note" style="padding:10px 14px">Stuff+ (mar) = el mismo pitch llevado a nivel del mar, comparable entre pitchers; temp. = tal como se lanzó en sus parques. '
+    f'Δ alt. = efecto del aire sobre el Stuff+ del mismo pitch (variante física). '
     f'Fit = Stuff+ proyectado en Harp Helú frente a pitches del mismo tipo. Action = pierde más de lo esperado para su nivel (Adjust/Review). '
+    f'Confianza = evidencia del efecto de altitud para su tipo de pitch (guía 36), no del Stuff+. '
     f'Acciones con evidencia Conditional o Uncertain son sugerencias de revisión, no instrucciones.</div></div>',
     unsafe_allow_html=True)
 with c[1]:
@@ -263,7 +270,7 @@ rows = "".join(
 st.markdown(
     f'<span class="dr-h2">Development Targets</span> <span class="dr-note">&nbsp;Zonas de los pitches de Stuff+ alto lanzados en Extreme · exploratorias, no recetas causales</span>'
     f'<div class="dr-card" style="padding:0;margin-top:10px"><table class="dr-tbl"><tr><th>Pitch · variable</th><th>Baseline (No Altitude)</th><th>En Harp Helú</th><th>Target en Harp Helú</th>'
-    f'<th>Expected direction</th><th>Confidence</th></tr>{rows or "<tr><td colspan=6 class=dr-note>Sin rasgos del perfil para sus tipos de pitch.</td></tr>"}</table>'
+    f'<th>Expected direction</th><th>Confianza</th></tr>{rows or "<tr><td colspan=6 class=dr-note>Sin rasgos del perfil para sus tipos de pitch.</td></tr>"}</table>'
     f'<div class="dr-note" style="padding:10px 14px">Baseline = el mismo pitch a nivel del mar (igual que el Arsenal Fingerprint). El target se midió en pitches '
     f'lanzados en altitud, así que el movimiento (IVB, HB) se compara con su valor en Harp Helú. Velocidad, spin y release no cambian con el parque.</div></div>',
     unsafe_allow_html=True)

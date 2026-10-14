@@ -93,13 +93,13 @@ for col, r in zip(cards, ars.itertuples()):
         f'<span><span class="dr-code">{r.code}</span> <b>{r.AutoPitchType}</b></span><span class="dr-note dr-mono">{r.usage:.0%}</span></div>'
         f'<div style="margin:10px 0 2px"><span class="dr-kpi-v" style="font-size:30px">{g["pitching_plus"][i]:.0f}</span> '
         f'<span class="dr-kpi-s">Pitching+ máximo</span></div><div class="dr-note">{zone_text(x, z, bside)}</div>'
-        f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span class="dr-pill">Whiff {g["whiff_per_pitch"][i]:.0%}</span>'
-        f'<span class="dr-pill">Strike cantado {g["called_strike"][i]:.0%}</span></div>'
+        f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span class="dr-pill">Whiff ≈ {g["whiff_per_pitch"][i]:.0%}</span>'
+        f'<span class="dr-pill">Strike cantado ≈ {g["called_strike"][i]:.0%}</span></div>'
         f'<div class="dr-note" style="margin-top:8px;{dmg_style}">Costo del contacto ahí: <b class="dr-mono">{dmg:.1f}</b> runs/100 '
         f'(zona: {dmg_zone:.1f})</div>'
         f'<div style="display:flex;justify-content:space-between;margin-top:10px"><span class="dr-note">Stuff+ {stuff_env:.0f}</span>{ui.conf_bars(r.evidence, False)}</div></div>',
         unsafe_allow_html=True)
-st.markdown(f'<div class="dr-note" style="margin-top:6px">Tarjetas en orden de uso. Pitching+ mide strike, whiff y chase esperados y <b>no</b> incluye el costo '
+st.markdown(f'<div class="dr-note" style="margin-top:6px">Tarjetas en orden de uso. Niveles de whiff y chase aproximados: la tasa base cambia entre temporadas (guía 35.4); los cambios entre entornos son más confiables que los niveles. Pitching+ mide strike, whiff y chase esperados y <b>no</b> incluye el costo '
             f'del contacto, que en Harp Helú es mayor (H3); por eso cada tarjeta muestra los dos. En amarillo, cuando el contacto en la zona de mayor '
             f'Pitching+ cuesta más que el promedio de la zona. Es una lectura de calidad, no una política de selección: el modelo no estima el efecto '
             f'causal de elegir un pitch (guía 37).</div>',
@@ -147,9 +147,11 @@ if sel_t:
         f'<div style="margin-top:14px">{ui.conf_bars(ars.set_index("AutoPitchType").evidence[sel_t])}</div></div>', unsafe_allow_html=True)
     with st.expander("Why? · detalle del modelo"):
         st.markdown(
-            f'<div class="dr-note" style="font-size:12.5px;line-height:1.6">Pitch representativo: media de sus {g["n"]} {sel_t} de 2026 a nivel del mar, '
-            f'llevada a {here} con la transformación validada (IVB × 0.77, HB × 0.71 en Harp Helú). Variante del modelo: '
-            f'{"con contexto de arsenal" if g["has_ars"] else "sin arsenal"}. <b>Calidad esperada</b> = Pitching+ (strike cantado, whiff y chase '
+            f'<div class="dr-note" style="font-size:12.5px;line-height:1.6">Cada celda promedia sus {g["n"]} {sel_t} reales de 2026 '
+            f'({g["n_used"]} en una muestra fija si son más de 150), cada uno llevado a nivel del mar y después a {here} con la transformación validada '
+            f'(IVB × 0.77, HB × 0.71 en Harp Helú): no un "pitch promedio", porque el modelo no es lineal. Esquema del modelo: nivel con la variante '
+            f'{"con contexto de arsenal" if g["has_ars"] else "sin arsenal"} a nivel del mar y efecto del entorno con la variante física (guía 38), '
+            f'igual que Player y el Simulator. <b>Calidad esperada</b> = Pitching+ (strike cantado, whiff y chase '
             f'ponderados por su valor en carreras, guía 33-34), con count, outs y lado del bateador. <b>Costo del contacto</b> = −P(bola en juego) × '
             f'valor esperado del contacto con el run expectancy LMB del entorno (rama de contacto, guía 34): no entra al score porque no mejoró la '
             f'predicción, pero sí muestra dónde y en qué entorno el contacto cuesta más. Probabilidades en la mejor zona: whiff '

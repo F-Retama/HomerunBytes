@@ -93,17 +93,24 @@ class Engine:
         return 100 + 10 * (z - m) / s, probs
 
     def altitude_table(self, pitch, fb=None, usage=None, ctx=None):
-        """Stuff+ (y Pitching+ con ctx) del mismo pitch en los tres entornos."""
+        """Stuff+ (y Pitching+ con ctx) del mismo pitch en los tres entornos, con el esquema hibrido de la guia 38:
+        nivel = variante oficial (con arsenal si hay fb) a nivel del mar; efecto del entorno = variante fisica."""
         base, ars = self.frame(pitch, fb, usage, ctx)
+        phys = np.zeros(len(base), bool)
+        fams = ["stuff"] + (["pitching"] if ctx is not None else [])
+        sea = self.to_env(base, "No Altitude")
+        off0 = {f: self.score(f, sea, ars) for f in fams}
+        phy0 = {f: self.score(f, sea, phys) for f in fams}
         rows = []
         for env in ENVS:
             x = self.to_env(base, env)
-            s, p = self.score("stuff", x, ars)
-            r = {"env": env, "label": ENV_LABEL[env], "stuff_plus": float(s[0]), "IVB": float(x["InducedVertBreak"].iloc[0]),
-                 "HB": float(x["HorzBreak"].iloc[0]), **{f"p_{c}": float(p[c][0]) for c in SHOW}}
+            phy = {f: self.score(f, x, phys) for f in fams}
+            s = off0["stuff"][0][0] + phy["stuff"][0][0] - phy0["stuff"][0][0]
+            r = {"env": env, "label": ENV_LABEL[env], "stuff_plus": float(s), "IVB": float(x["InducedVertBreak"].iloc[0]),
+                 "HB": float(x["HorzBreak"].iloc[0]),
+                 **{f"p_{c}": float(off0["stuff"][1][c][0] + phy["stuff"][1][c][0] - phy0["stuff"][1][c][0]) for c in SHOW}}
             if ctx is not None:
-                pp, _ = self.score("pitching", x, ars)
-                r["pitching_plus"] = float(pp[0])
+                r["pitching_plus"] = float(off0["pitching"][0][0] + phy["pitching"][0][0] - phy0["pitching"][0][0])
             rows.append(r)
         return pd.DataFrame(rows)
 
@@ -130,9 +137,24 @@ class Engine:
         """Stuff+ medio de los pitches reales del pitcher en cada entorno, con desplazamientos what-if
         (sumados a cada pitch a nivel del mar). hybrid=True (titular, guía 38): nivel = Stuff+ oficial a nivel
         del mar y efecto de altitud = variante física; con shifts vacíos reproduce la proyección de 22.
-        hybrid=False: todo con la variante dada por ars (sensibilidad)."""
-        sea = self._shift(self.sea_level(rows), shifts)
-        return self._hybrid(sea, ars) if hybrid else self._score_envs(sea, ars)
+        hybrid=False: todo con la variante dada por ars (sensibilidad).
+        Con shifts, el EFECTO DEL CAMBIO se mide con la variante oficial en cada entorno y se suma a la proyeccion
+        hibrida del pitch actual: a nivel del mar el escenario es exactamente el Stuff+ oficial. Mezclar la
+        variante fisica en el cambio (su sensibilidad al IVB es otra) cancelaba ganancias en altitud."""
+        base = self.sea_level(rows)
+        if not hybrid:
+            return self._score_envs(self._shift(base, shifts), ars)
+        out = self._hybrid(base, ars)
+        if not any(abs(d) > 1e-12 for d in (shifts or {}).values()):
+            return out
+        off0 = self._score_envs(base, ars).set_index("env")
+        off1 = self._score_envs(self._shift(base, shifts), ars).set_index("env").reindex(off0.index)
+        out = out.set_index("env")
+        for col in ["stuff_plus"] + [f"p_{c}" for c in SHOW]:
+            out[col] = out[col] + off1[col] - off0[col]
+        for col in ["IVB", "HB"]:
+            out[col] = off1[col]
+        return out.reset_index()
 
     def _hybrid(self, sea, ars):
         off = self._score_envs(sea, ars).set_index("env")
@@ -143,6 +165,8 @@ class Engine:
         return out.reset_index()
 
     def _shift(self, sea, shifts):
+        """Desplaza la fisica de cada pitch y sus diferencias contra la recta. La recta de referencia es HISTORICA
+        (temporadas anteriores, fold-safe), asi que un cambio en la recta misma tambien mueve su diferencia."""
         sea = sea.copy()
         for f, d in (shifts or {}).items():
             if abs(d) < 1e-12:
@@ -228,30 +252,64 @@ class Engine:
         m["PitcherThrows"] = rows.PitcherThrows.astype(str).mode().iloc[0]
         return m, bool(ars.mean() >= 0.5), len(rows)
 
+    MAX_GRID_ROWS = 150  # muestra fija de pitches reales por celda (velocidad); el promedio poblacional casi no cambia
+
+    def _context_frame(self, sea, ctx, xs, ys):
+        """Repite cada pitch (a nivel del mar) en cada ubicacion (xs[k], ys[k]) con el contexto de count y bateador."""
+        n, L = len(sea), len(xs)
+        big = sea.loc[sea.index.repeat(L)].reset_index(drop=True)
+        big["PlateLocSide"], big["PlateLocHeight"] = np.tile(xs, n), np.tile(ys, n)
+        for k, dflt in [("Balls", 0), ("Strikes", 0), ("Outs", 0), ("Inning", 1)]:
+            big[k] = ctx.get(k, dflt)
+        for k, dflt in [("BatterSide", "Right"), ("prev_pitch_type", "Primer_pitch")]:
+            big[k] = pd.Categorical([ctx.get(k, dflt)] * len(big), categories=self.cats[k])
+        return big
+
+    def population_pitching(self, sea, ars, ctx, xs, ys, env, shifts=None):
+        """Pitching+, probabilidades y valor del contacto PROMEDIO sobre los pitches reales (no un pitch promedio,
+        guia 37.5: el modelo no es lineal) en cada ubicacion, con el esquema hibrido de la guia 38: nivel = variante
+        oficial a nivel del mar; efecto del entorno = variante fisica (sin arsenal)."""
+        n, L = len(sea), len(xs)
+        big = self._context_frame(sea, ctx, xs, ys)
+        a_off, a_phys = np.repeat(ars, L), np.zeros(n * L, bool)
+        fam = self.entry["families"]["pitching"]
+
+        def evaluate(x, a):
+            pp_, pr_ = self.score("pitching", x, a)
+            cv_ = self.t16.family_predict(fam["models"]["contact_value"], x, a, fam["variants"])
+            return {"pitching_plus": pp_, "contact_value": cv_, **{c: pr_[c] for c in SHOW}}
+        sea_x = self.to_env(big, "No Altitude")
+        out = evaluate(sea_x, a_off)
+        if env != "No Altitude":
+            p0, p1 = evaluate(sea_x, a_phys), evaluate(self.to_env(big, env), a_phys)
+            out = {k: out[k] + p1[k] - p0[k] for k in out}
+        if shifts and any(abs(d) > 1e-12 for d in shifts.values()):
+            # efecto del cambio what-if con la variante oficial en el mismo entorno (igual que population_table)
+            big1 = self._shift(big, shifts)
+            e0, e1 = evaluate(self.to_env(big, env), a_off), evaluate(self.to_env(big1, env), a_off)
+            out = {k: out[k] + e1[k] - e0[k] for k in out}
+        return {k: v.reshape(n, L).mean(axis=0) for k, v in out.items()}
+
+    def grid_rows(self, pid, ptype):
+        """Pitches reales del pitcher y tipo llevados a nivel del mar (muestra fija si son muchos)."""
+        rows, ars = self.pitcher_rows(pid, ptype)
+        if len(rows) > self.MAX_GRID_ROWS:
+            idx = np.sort(np.random.default_rng(0).choice(len(rows), self.MAX_GRID_ROWS, replace=False))
+            rows, ars = rows.iloc[idx].reset_index(drop=True), ars[idx]
+        return self.sea_level(rows), ars
+
     def game_grid(self, pid, ptype, ctx, env, nx=13, ny=15):
-        """Pitching+, probabilidades y daño esperado en contacto (runs/100, + = más daño) en una rejilla de ubicaciones."""
-        m, has_ars, n = self.pitch_means(pid, ptype)
+        """Pitching+, probabilidades y daño esperado en contacto (runs/100, + = más daño) en una rejilla de ubicaciones,
+        promediados sobre los pitches reales del pitcher (poblacion, como el What-if y Player)."""
+        sea, ars = self.grid_rows(pid, ptype)
+        n_total = int(self.pitcher_rows(pid, ptype)[1].size)
         xs, ys = np.linspace(-1.5, 1.5, nx), np.linspace(0.8, 4.0, ny)
         gx, gy = np.meshgrid(xs, ys)
-        N = gx.size
-        df = pd.DataFrame({c: np.full(N, m[c]) for c in self.NUM_FEATS + ["SpinAxis"]})
-        df["AutoPitchType"], df["PitcherThrows"] = ptype, m["PitcherThrows"]
-        df["BatterSide"], df["prev_pitch_type"] = ctx.get("BatterSide", "Right"), ctx.get("prev_pitch_type", "Primer_pitch")
-        for k, dflt in [("Balls", 0), ("Strikes", 0), ("Outs", 0), ("Inning", 1)]:
-            df[k] = ctx.get(k, dflt)
-        df["PlateLocSide"], df["PlateLocHeight"] = gx.ravel(), gy.ravel()
-        df["altitude_category"] = "No Altitude"
-        if not has_ars:
-            for c in ["velo_diff_vs_fb", "ivb_diff_vs_fb", "hb_diff_vs_fb", "spin_diff_vs_fb", "pitch_usage_pct", "release_distance_vs_fb", "extension_diff_vs_fb"]:
-                df[c] = np.nan
-        x = self.to_env(self._cat(df), env)
-        ars = np.full(N, has_ars)
-        pp, probs = self.score("pitching", x, ars)
-        fam = self.entry["families"]["pitching"]
-        cv = self.t16.family_predict(fam["models"]["contact_value"], x, ars, fam["variants"])
+        r = self.population_pitching(sea, ars, ctx, gx.ravel(), gy.ravel(), env)
         shp = gy.shape
-        return {"xs": xs, "ys": ys, "pitching_plus": pp.reshape(shp), "damage": (-100 * cv).reshape(shp),
-                **{c: probs[c].reshape(shp) for c in SHOW}, "n": n, "has_ars": has_ars, "hand": m["PitcherThrows"]}
+        return {"xs": xs, "ys": ys, "pitching_plus": r["pitching_plus"].reshape(shp), "damage": (-100 * r["contact_value"]).reshape(shp),
+                **{c: r[c].reshape(shp) for c in SHOW}, "n": n_total, "n_used": len(sea), "has_ars": bool(ars.mean() >= 0.5),
+                "hand": sea.PitcherThrows.astype(str).mode().iloc[0]}
 
     def location_grid(self, pitch, ctx, nx=17, ny=19):
         """Location+ sobre una rejilla de ubicaciones (vista del catcher, pies)."""

@@ -127,6 +127,7 @@ with tabs[0]:
     else:
         fb_s = fb
     shifts = {f: scen[f] - base[f] for f, *_ in FIELDS}
+    pop_rows, pop_ars = rows, rows_ars  # pitches del escenario; 'rows' se reutiliza abajo para la tabla
     sens = None
     if rows is not None:
         r_ars = rows_ars
@@ -156,13 +157,14 @@ with tabs[0]:
                             for e in ["No Altitude", "Extreme Altitude"])
             rows.append(f"<tr><td>{lab}</td>{cells}</tr>")
         st.markdown(f'<div class="dr-card" style="padding:0;margin-top:12px"><table class="dr-tbl"><tr><th></th><th>Nivel del mar · actual</th>'
-                    f'<th>Nivel del mar · escenario</th><th>Harp Helú · actual</th><th>Harp Helú · escenario</th></tr>{"".join(rows)}</table></div>',
+                    f'<th>Nivel del mar · escenario</th><th>Harp Helú · actual</th><th>Harp Helú · escenario</th></tr>{"".join(rows)}</table>'
+                    f'<div class="dr-note" style="padding:8px 14px">Niveles de whiff y chase aproximados: la tasa base cambia entre temporadas (guía 35.4); los cambios entre entornos son más confiables que los niveles.</div></div>',
                     unsafe_allow_html=True)
         g = st.columns([1.3, 1])
         fig = go.Figure()
         fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(255,255,255,0.15)"))
         with g[0]:
-            show_lg = st.toggle(f"Comparar con los {ptype} más y menos efectivos de la liga en Harp Helú", value=True, key="sim_mm")
+            show_lg = st.toggle(f"Comparar con los {ptype} de la liga con más y menos whiff real", value=True, key="sim_mm")
         mm = data.movement_map(year)
         mm = mm[(mm.AutoPitchType == ptype) & (mm.grupo != "Resto")]
         if show_lg and len(mm):
@@ -180,8 +182,7 @@ with tabs[0]:
                           yaxis=dict(title="IVB (in)", gridcolor="rgba(255,255,255,0.05)", zeroline=False))
         g[0].plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         if show_lg and len(mm):
-            g[0].markdown('<div class="dr-note">● azul / ✕ naranja = quintil alto / bajo de Stuff+ en Harp Helú entre los pitchers de la liga con ese tipo '
-                          '(≥ 50 pitches), con su movimiento en Harp Helú. Compáralos con el marcador relleno del pitch.</div>', unsafe_allow_html=True)
+            g[0].markdown('<div class="dr-note">● azul / ✕ naranja = quintil alto / bajo de whiff real por pitch (resultados de la temporada) entre los pitchers de la liga con ese tipo (≥ 50 pitches), con su movimiento en Harp Helú. Compáralos con el marcador relleno del pitch.</div>', unsafe_allow_html=True)
         warn = E.out_of_range(scen)
         dh = ss.loc["Extreme Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
         loss = hh.loc["No Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
@@ -220,7 +221,8 @@ with tabs[1]:
         bside = st.segmented_control("Bateador", ["Right", "Left"], default="Right", format_func=lambda s: "Derecho" if s == "Right" else "Zurdo")
         px = st.slider("Ubicación horizontal (ft, vista del catcher)", -1.6, 1.6, 0.0, 0.05)
         pz = st.slider("Altura (ft)", 0.6, 4.2, 2.5, 0.05)
-        st.markdown('<div class="dr-note">Usa el pitch promedio del escenario de la pestaña anterior.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dr-note">Location+ usa la ubicación, el count y el tipo de pitch (no la física). Pitching+ promedia los pitches '
+                    'reales del escenario de la pestaña anterior en esta ubicación y count.</div>', unsafe_allow_html=True)
     ctx = {"Balls": balls, "Strikes": strikes, "BatterSide": bside or "Right", "PlateLocSide": px, "PlateLocHeight": pz}
 
     @st.cache_data(show_spinner=False, max_entries=64)
@@ -239,7 +241,16 @@ with tabs[1]:
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     with c[2]:
         loc_s, lp = E.score("location", *E.frame(scen, ctx=ctx))
-        at = E.altitude_table(scen, fb_s, us, ctx=ctx).set_index("env")
+        if pop_rows is not None:  # población del escenario (los mismos pitches que el What-if), no un pitch promedio (guía 37.5)
+            sea_s, a_s = E.sea_level(pop_rows), pop_ars
+            if len(sea_s) > E.MAX_GRID_ROWS:
+                keep = np.sort(np.random.default_rng(0).choice(len(sea_s), E.MAX_GRID_ROWS, replace=False))
+                sea_s, a_s = sea_s.iloc[keep].reset_index(drop=True), a_s[keep]
+            at = pd.DataFrame([{"env": e, "label": engine.ENV_LABEL[e],
+                                "pitching_plus": float(E.population_pitching(sea_s, a_s, ctx, np.array([px]), np.array([pz]), e, shifts)["pitching_plus"][0])}
+                               for e in engine.ENVS]).set_index("env")
+        else:
+            at = E.altitude_table(scen, fb_s, us, ctx=ctx).set_index("env")
         st.markdown(
             f'<div class="dr-card"><div class="dr-label">En esta ubicación y count</div>'
             f'<div style="margin-top:10px"><span class="dr-kpi-v">{loc_s[0]:.1f}</span> <span class="dr-kpi-s">Location+</span></div>'
