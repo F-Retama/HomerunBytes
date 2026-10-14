@@ -42,6 +42,9 @@ Definiciones
                    (contra el signo del lift); 'Maintain' si esta dentro o mas alla en la direccion favorable. Exploratorios, no recetas causales. No incluye uso.
   Valor/100      = valor realizado por pitch (RE LMB por conteo x outs, perspectiva del pitcher) x 100: runs
                    ahorrados por 100 pitches respecto al promedio del estado. Ruidoso (guia 35); solo para senales.
+  Tasa de roletazos = por pitcher y temporada, GroundBall / (GroundBall + FlyBall + LineDrive + Popup) entre sus
+                   bolas en juego (is_ball_in_play == 1, sin bunts ni hit_type ausente: definicion del target de la guia 22),
+                   todos los parques. Los fouls traen hit_type pero no son bolas en juego y no cuentan.
   Equipos        = reconstruidos por co-aparicion: pitchers que lanzan en la misma mitad de entrada de
                    >= 3 juegos y >= 50% de las apariciones del menos activo. 'Local' = categoria de
                    altitud mayoritaria de los juegos donde pitchea la parte alta. Anonimos: el dataset no
@@ -164,7 +167,7 @@ def main():
     raw = pd.read_parquet(BASE_DIR / "stuff_model_df.parquet", columns=["PitchUID", "pitcher_anon_id", "game_anon_id", "year", "Inning", "Top/Bottom",
                                                                          "altitude_category", "PitcherThrows", "AutoPitchType", "RelSpeed", "RelHeight", "RelSide",
                                                                          "Extension", "SpinRate", "SpinAxis", "InducedVertBreak", "HorzBreak", "is_whiff",
-                                                                         "outside_strike_zone", "swung_outside_strike_zone", "hit_type"]).dropna(subset=["pitcher_anon_id"])
+                                                                         "outside_strike_zone", "swung_outside_strike_zone", "hit_type", "is_ball_in_play"]).dropna(subset=["pitcher_anon_id"])
     for c in ["AutoPitchType", "altitude_category", "PitcherThrows"]:
         raw[c] = raw[c].astype(str)
     raw["HB_r"] = raw["HorzBreak"] * raw["PitcherThrows"].astype(str).map({"Left": -1.0}).fillna(1.0)
@@ -306,7 +309,8 @@ def main():
         # en Extreme y tasa de roletazos (roletazos / bolas en juego sin toques, todos los parques).
         ext = sc[sc.altitude_category.astype(str) == "Extreme Altitude"].groupby("pitcher_anon_id")["realized_value_pitcher"]
         p = p.merge(pd.DataFrame({"value_per_100_extreme": ext.mean().mul(100), "n_extreme": ext.size()}).reset_index(), on="pitcher_anon_id", how="left")
-        bip = r[r["hit_type"].isin(["GroundBall", "FlyBall", "LineDrive", "Popup"])]
+        # Solo bolas en juego (guia 22): 74,638 filas con hit_type no son bolas en juego (72,818 fouls) y bajaban la tasa unos 11 pp.
+        bip = r[(r["is_ball_in_play"] == 1) & r["hit_type"].isin(["GroundBall", "FlyBall", "LineDrive", "Popup"])]
         gb = bip.groupby("pitcher_anon_id")["hit_type"].agg(gb_rate=lambda h: (h == "GroundBall").mean(), n_bip="size").reset_index()
         p = p.merge(gb, on="pitcher_anon_id", how="left")
         hand = sc.assign(PitcherThrows=sc["PitcherThrows"].astype(str)).groupby("pitcher_anon_id")["PitcherThrows"].agg(lambda s: s.value_counts().idxmax())

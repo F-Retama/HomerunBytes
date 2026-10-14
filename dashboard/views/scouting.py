@@ -170,7 +170,7 @@ with tabs[5]:
                 real_txt = (f"En resultados reales no se ve ese costo: el valor por 100 pitches lanzados en altitud no cambia con el porcentaje de rectas "
                             f"({v.valor:+.2f} carreras por +10 pp [{v.ci95_lo:+.2f}, {v.ci95_hi:+.2f}], {int(v.n_pitchers)} pitchers). ")
             if ct is not None and k_si in ct.index and k_re in ct.index:
-                real_txt += (f"Y los pitchers con mucho sinker inducen más roletazos ({ct.loc[k_si].valor:.0%} contra {ct.loc[k_re].valor:.0%}), que en altitud "
+                real_txt += (f"Y los pitchers con mucho sinker inducen más roletazos ({ct.loc[k_si].valor:.0%} contra {ct.loc[k_re].valor:.0%} de sus bolas en juego), que en altitud "
                              f"valen casi el doble (H3) y el Stuff+ casi no pondera.")
             st.markdown(
                 f'<div class="dr-card"><div class="dr-label">¿Qué arsenal produce el Stuff+ más alto en Harp Helú? · {year}</div>'
@@ -213,7 +213,8 @@ with tabs[5]:
                 st.markdown(f'<div class="dr-card" style="padding:0;margin-top:14px"><div style="padding:12px 16px"><span class="dr-h2">Dependencia de la recta</span></div>'
                             f'<table class="dr-tbl"><tr><th>Cuartil</th><th>% rectas</th><th>Stuff+ mar</th><th>Stuff+ Harp</th><th>Δ</th><th>Roletazos (real)</th></tr>{qrows}</table>'
                             f'<div class="dr-note" style="padding:10px 14px">Pendiente en Harp Helú por +10 pp de rectas: {s_harp.delta:+.2f} '
-                            f'[{s_harp.ci95_lo:+.2f}, {s_harp.ci95_hi:+.2f}] de Stuff+. {int(q.n_pitchers.sum())} pitchers con ≥ 100 pitches.</div></div>',
+                            f'[{s_harp.ci95_lo:+.2f}, {s_harp.ci95_hi:+.2f}] de Stuff+. {int(q.n_pitchers.sum())} pitchers con ≥ 100 pitches. '
+                            f'Roletazos (real): roletazos entre bolas en juego sin toques, promedio por pitcher en todos los parques.</div></div>',
                             unsafe_allow_html=True)
                 trows = "".join(f'<tr><td><span class="dr-code">{ui.CODE[k]}</span> {k}</td><td class="dr-mono">{r.stuff_mar:.1f}</td>'
                                 f'<td class="dr-mono"><b>{r.stuff_harp:.1f}</b></td><td>{ui.delta_fmt(r.delta)}</td></tr>'
