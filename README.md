@@ -259,3 +259,16 @@ Detalle en la guía, sección 42.
 ## Corrección del What-if (14/10/2026)
 
 Al preparar el guion del video apareció un error: en el Simulator, un cambio de física (por ejemplo, +2 in de IVB) subía el Stuff+ a nivel del mar pero no en Harp Helú. El esquema híbrido mezclaba la sensibilidad de dos variantes del modelo. Ahora el efecto del cambio se mide con la variante oficial en cada entorno. Detalle en la guía, sección 42.9.
+
+## Video del entregable 4 (21/10/2026)
+
+El video (4:12, 1080p, con subtítulos) se graba recorriendo el dashboard con Playwright según el guion corto, partido en 20 segmentos en `video/narracion.json`. Requiere el dashboard corriendo en el puerto 8599 y macOS.
+
+```bash
+python -m pip install playwright imageio-ffmpeg && python -m playwright install chromium
+python video/partir_voz.py video/voz/narracion_completa.mp3   # parte la narración de ElevenLabs en segmentos
+python video/grabar_video.py --voz-propia video/voz           # graba, monta la voz y quema los subtítulos
+```
+
+Salida en `video/salida/` (fuera de git): `video_entrega.mp4` y `subtitulos.srt`. `--remontar` rehace solo el montaje sobre la última toma y `--ensayo` guarda una captura por segmento. Para grabar con voz propia, ver `video/GUION_VOZ.md`. Detalle en la guía, sección 43.
+
