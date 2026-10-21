@@ -1,0 +1,388 @@
+{
+  "_nota": "Narración de propuestas/Guion_propuesta.md partida en segmentos, cada uno con las acciones que van antes ('antes', bloqueante) y durante ('durante'). El texto usa grafías fonéticas para que la voz sintética (Paulina, es_MX) no lea en español literal los términos en inglés. Las cifras son las del guion, verificadas en esta Mac el 19/10/2026. 'subtitulo' es el mismo texto con la ortografía normal; se usa para los subtítulos del video.",
+  "voz": "Paulina",
+  "ritmo": 160,
+  "segmentos": [
+    {
+      "id": "1a",
+      "escena": 1,
+      "antes": [],
+      "durante": [
+        [
+          "esperar",
+          24
+        ],
+        [
+          "resaltar",
+          "env",
+          8
+        ]
+      ],
+      "texto": "El Harp Helú está a 2240 metros. Con menos aire, el mismo giro mueve menos la pelota: Álan Néitan estima que en Kurs Fild, un pitch con 18 pulgadas de quiebre se mueve solo 14 o 15. Lo medimos con datos de la Liga Mexicana: en altitud extrema, el mismo pícher conserva 77 por ciento de su movimiento vertical. Construimos un sistema que califica cada lanzamiento con Staf plus, Lokéishon plus y Píching plus, y proyecta cuánto cambia en altitud extrema, nuestro próxi del Harp Helú.",
+      "subtitulo": "El Harp Helú está a 2,240 metros. Con menos aire, el mismo giro mueve menos la pelota: Alan Nathan estima que en Coors Field un pitch con 18 pulgadas de quiebre se mueve solo 14 o 15. Lo medimos con datos de la Liga Mexicana: en altitud extrema, el mismo pitcher conserva 77% de su movimiento vertical. Construimos un sistema que califica cada lanzamiento con Stuff+, Location+ y Pitching+, y proyecta cuánto cambia en altitud extrema, nuestro proxy del Harp Helú."
+    },
+    {
+      "id": "2a",
+      "escena": 2,
+      "antes": [],
+      "durante": [
+        [
+          "esperar",
+          0.5
+        ],
+        [
+          "resaltar",
+          "kpi_stuff",
+          11
+        ]
+      ],
+      "texto": "Este es un equipo local en altitud. Su Staf plus comparable es 102.2; con lo que lanzaron en sus parques, se vería 99.5, porque la altitud les baja el número.",
+      "subtitulo": "Este es un equipo local en altitud. Su Stuff+ comparable es 102.2; con lo que lanzaron en sus parques se vería 99.5, porque la altitud les baja el número."
+    },
+    {
+      "id": "2b",
+      "escena": 2,
+      "antes": [],
+      "durante": [
+        [
+          "esperar",
+          0.3
+        ],
+        [
+          "resaltar",
+          "inbox_1",
+          12
+        ]
+      ],
+      "texto": "La bandeja responde a quién revisar primero: el Fórsim del pícher cero cero nueve seis cuatro pierde más de 7 puntos en Harp Helú, 3.3 más de lo normal para una recta de su nivel.",
+      "subtitulo": "La bandeja responde a quién revisar primero: el Four-Seam del Pitcher 00964 pierde más de 7 puntos en Harp Helú, 3.3 más de lo normal para una recta de su nivel."
+    },
+    {
+      "id": "3a",
+      "escena": 3,
+      "antes": [
+        [
+          "clic",
+          "review_1"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "player_reco",
+          3
+        ]
+      ],
+      "texto": "Su ficha explica la alerta.",
+      "subtitulo": "Su ficha explica la alerta."
+    },
+    {
+      "id": "3b",
+      "escena": 3,
+      "antes": [
+        [
+          "desplazar",
+          "adaptacion"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "adapt_ff",
+          11
+        ]
+      ],
+      "texto": "El mismo Fórsim pasa de 93 a 86: el aire le quita 4 pulgadas de movimiento vertical, y su güif modelado cae 3.7 puntos.",
+      "subtitulo": "El mismo Four-Seam pasa de 93 a 86: el aire le quita 4 pulgadas de movimiento vertical y su whiff modelado cae 3.7 puntos."
+    },
+    {
+      "id": "3c",
+      "escena": 3,
+      "antes": [],
+      "durante": [
+        [
+          "esperar",
+          2.2
+        ],
+        [
+          "resaltar",
+          "adapt_sl",
+          11
+        ]
+      ],
+      "texto": "No todos los pitches pierden igual. En la liga, el Fórsim pierde 5.4 puntos, el Sínker 2.9 y el Chéinchap 0.6; en el Esláider, el efecto es prácticamente nulo.",
+      "subtitulo": "No todos los pitches pierden igual. En la liga, el Four-Seam pierde 5.4 puntos, el Sinker 2.9 y el Changeup 0.6; en el Slider el efecto es prácticamente nulo."
+    },
+    {
+      "id": "3d",
+      "escena": 3,
+      "antes": [],
+      "durante": [
+        [
+          "resaltar",
+          "adapt_ff",
+          5
+        ]
+      ],
+      "texto": "En las rectas, el modelo coincide con lo observado en los mismos píchers.",
+      "subtitulo": "En las rectas, el modelo coincide con lo observado en los mismos pitchers."
+    },
+    {
+      "id": "4a",
+      "escena": 4,
+      "antes": [
+        [
+          "desplazar",
+          "fondo"
+        ],
+        [
+          "clic",
+          "abrir_simulador"
+        ]
+      ],
+      "durante": [
+        [
+          "esperar",
+          4.5
+        ],
+        [
+          "resaltar",
+          "sim_cartas",
+          6
+        ]
+      ],
+      "texto": "Este es el simulador: el mismo pitch a nivel del mar, en altitud media y en Harp Helú: 92.9, 87.4 y 85.6.",
+      "subtitulo": "Este es el simulador: el mismo pitch a nivel del mar, en altitud media y en Harp Helú, 92.9, 87.4 y 85.6."
+    },
+    {
+      "id": "4b",
+      "escena": 4,
+      "antes": [
+        [
+          "slider",
+          0,
+          10
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "sim_harp",
+          6
+        ]
+      ],
+      "texto": "Si lograra una milla más de velocidad, el modelo estima casi 4 puntos más en Harp Helú.",
+      "subtitulo": "Si lograra una milla más de velocidad, el modelo estima casi 4 puntos más en Harp Helú."
+    },
+    {
+      "id": "4c",
+      "escena": 4,
+      "antes": [
+        [
+          "clic",
+          "restablecer"
+        ],
+        [
+          "clic",
+          "pitch_manual"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "sim_origen",
+          3
+        ]
+      ],
+      "texto": "Para un prospecto, el coach captura sus métricas:",
+      "subtitulo": "Para un prospecto, el coach captura sus métricas:"
+    },
+    {
+      "id": "4d",
+      "escena": 4,
+      "antes": [
+        [
+          "slider",
+          0,
+          27
+        ],
+        [
+          "slider",
+          1,
+          11
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "sim_sliders",
+          5
+        ],
+        [
+          "resaltar",
+          "sim_cartas",
+          5
+        ]
+      ],
+      "texto": "un Fórsim de 95 millas y 18 pulgadas de movimiento vertical da 109.5 a nivel del mar, y 101.4 en Harp Helú.",
+      "subtitulo": "un Four-Seam de 95 millas y 18 pulgadas de movimiento vertical da 109.5 a nivel del mar y 101.4 en Harp Helú."
+    },
+    {
+      "id": "4e",
+      "escena": 4,
+      "antes": [
+        [
+          "desplazar",
+          "sim_mapa"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "sim_mapa",
+          6
+        ]
+      ],
+      "texto": "El mapa lo ubica frente a los Fórsim de la liga con más y menos suing en falso real.",
+      "subtitulo": "El mapa lo ubica frente a los Four-Seam de la liga con más y menos swing en falso real."
+    },
+    {
+      "id": "5a",
+      "escena": 5,
+      "antes": [
+        [
+          "clic",
+          "nav_scouting"
+        ],
+        [
+          "desplazar",
+          "scout_mapa"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "scout_mapa",
+          5
+        ]
+      ],
+      "texto": "Para el director deportivo, el perfil ideal muestra ese mapa completo.",
+      "subtitulo": "Para el director deportivo, el perfil ideal muestra ese mapa completo."
+    },
+    {
+      "id": "5b",
+      "escena": 5,
+      "antes": [],
+      "durante": [
+        [
+          "resaltar",
+          "scout_tabla",
+          10
+        ]
+      ],
+      "texto": "Los Fórsim con más güif real superan a los de menos: 15.2 por ciento contra 4.1 por ciento, y los separa la velocidad, no el movimiento.",
+      "subtitulo": "Los Four-Seam con más whiff real superan a los de menos, 15.2% contra 4.1%, y los separa la velocidad, no el movimiento."
+    },
+    {
+      "id": "5c",
+      "escena": 5,
+      "antes": [],
+      "durante": [
+        [
+          "resaltar",
+          "scout_tabla",
+          10
+        ]
+      ],
+      "texto": "El grupo con más güif también tiene más Staf plus proyectado en Harp Helú: 96.5 contra 91.3. El modelo coincide con resultados que no usa.",
+      "subtitulo": "El grupo con más whiff también tiene más Stuff+ proyectado en Harp Helú, 96.5 contra 91.3: el modelo coincide con resultados que no usa."
+    },
+    {
+      "id": "5d",
+      "escena": 5,
+      "antes": [],
+      "durante": [],
+      "texto": "Esa es la pregunta de reclutamiento: cuánto vale un pícher aquí, no en otro parque.",
+      "subtitulo": "Esa es la pregunta de reclutamiento: cuánto vale un pitcher aquí, no en otro parque."
+    },
+    {
+      "id": "6a",
+      "escena": 6,
+      "antes": [
+        [
+          "ir",
+          "/game?pid=pitcher_00776"
+        ],
+        [
+          "clic",
+          "strikes_2"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "game_contexto",
+          5
+        ],
+        [
+          "resaltar",
+          "game_ff",
+          4
+        ],
+        [
+          "resaltar",
+          "game_heat",
+          5
+        ]
+      ],
+      "texto": "En el juego, la vista táctica muestra calidad y riesgo juntos. Con cuenta de cero y dos contra un derecho, la recta del pícher cero cero siete siete seis tiene su mayor calidad esperada en la parte alta de la zona.",
+      "subtitulo": "En el juego, la vista táctica muestra calidad y riesgo juntos. Con cuenta de 0-2 contra un derecho, la recta del Pitcher 00776 tiene su mayor calidad esperada en la parte alta de la zona."
+    },
+    {
+      "id": "6b",
+      "escena": 6,
+      "antes": [],
+      "durante": [
+        [
+          "resaltar",
+          "game_lectura",
+          11
+        ]
+      ],
+      "texto": "Pero en Harp Helú, el contacto dentro de la zona cuesta el doble que a nivel del mar: 4.2 contra 2.1 carreras por cada 100 pitches.",
+      "subtitulo": "Pero en Harp Helú el contacto dentro de la zona cuesta el doble que a nivel del mar: 4.2 contra 2.1 carreras por cada 100 pitches."
+    },
+    {
+      "id": "6c",
+      "escena": 6,
+      "antes": [
+        [
+          "clic",
+          "nivel_mar"
+        ]
+      ],
+      "durante": [
+        [
+          "resaltar",
+          "game_lectura",
+          4
+        ]
+      ],
+      "texto": "En altitud, dejarla en la zona sale el doble de caro.",
+      "subtitulo": "En altitud, dejarla en la zona sale el doble de caro."
+    },
+    {
+      "id": "7a",
+      "escena": 7,
+      "antes": [
+        [
+          "clic",
+          "nav_roster"
+        ]
+      ],
+      "durante": [],
+      "texto": "Todo se validó fuera de muestra. El A U C de güif casi no cambia con píchers que el modelo no vio, con la temporada siguiente, y con un entorno de altitud que no vio: 0.625, 0.628 y 0.630. Y Píching plus predice el valor de cada lanzamiento mejor que el promedio por conteo y outs. Cada lectura muestra su nivel de evidencia. El sistema no dice qué pitch lanzar: dice cuánto vale cada pitch en el Harp Helú, y por qué.",
+      "subtitulo": "Todo se validó fuera de muestra. El AUC de whiff casi no cambia con pitchers que el modelo no vio, con la temporada siguiente y con un entorno de altitud que no vio: 0.625, 0.628 y 0.630. Y Pitching+ predice el valor de cada lanzamiento mejor que el promedio por conteo y outs. Cada lectura muestra su nivel de evidencia. El sistema no dice qué pitch lanzar: dice cuánto vale cada pitch en el Harp Helú y por qué."
+    }
+  ]
+}

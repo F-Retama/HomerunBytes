@@ -20,3 +20,8 @@ dashboard/state/
 
 # Logs del runner del prototipo (correr_prototipo.py)
 prototipo_logs/
+
+# Video del entregable 4 (generado por video/grabar_video.py)
+video/salida/
+video/voz/
+video/voz_v1/
