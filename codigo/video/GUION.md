@@ -1,6 +1,6 @@
-# Propuesta: guion del video con holgura (4:32 de 5:00)
+# Guion del video (entregable 4)
 
-Propuesta de ajuste al guion del video (versión del 14/10/2026), hecha sobre el documento técnico recortado (`propuestas/Doc_Tecnico_propuesta.md`). Objetivos:
+Propuesta de ajuste al guion del video (versión del 14/10/2026), hecha sobre el documento técnico recortado (`Documento_Tecnico_Diablos_Rojos.pdf`). Objetivos:
 
 - **Holgura.** El guion actual dura exactamente 5:00. Esta versión tiene **523 palabras de narración** (~4:00 a 130 palabras por minuto, el ritmo del guion actual: ~610 palabras en 5:00), más ~30 s de pausas para los clics: **4:32 en total, con 28 s de margen**.
 - **Simulator más corto:** de 95 s y cinco acciones a 55 s y tres.
@@ -44,7 +44,7 @@ Tiempo por escena = narración a 130 palabras por minuto más pausas para las ac
 
 ## Cifras dichas en voz alta, verificadas
 
-Verificadas el 16/10/2026 en Linux con `main` en `ad0af9d` (PR #8 fusionado), tablas del dashboard regeneradas (`correr_prototipo.py --sin-abrir`: 23 y 24 regenerados; el motor reproduce los scores oficiales con 1.4e-14) y `propuestas/verificar_cifras_guion.py`, que replica el cálculo de cada vista. Las cifras de la Mac de Dani difieren en centésimas; cuando eso cambia el redondeo, la narración usa una forma que vale en ambas.
+Verificadas el 16/10/2026 en Linux con `main` en `ad0af9d` (PR #8 fusionado), tablas del dashboard regeneradas (`correr_prototipo.py --sin-abrir`: 23 y 24 regenerados; el motor reproduce los scores oficiales con 1.4e-14) y `video/verificar_cifras_guion.py`, que replica el cálculo de cada vista. Las cifras de la Mac de Dani difieren en centésimas; cuando eso cambia el redondeo, la narración usa una forma que vale en ambas.
 
 | Escena | Cifra dicha | Valor en `main` (Linux) | Fuente | ¿Cambió respecto al guion actual? | En el documento recortado |
 |---|---|---|---|---|---|
@@ -73,7 +73,7 @@ Verificadas el 16/10/2026 en Linux con `main` en `ad0af9d` (PR #8 fusionado), ta
 ## Preparación antes de grabar
 
 - Correr `python correr_prototipo.py` con la versión final de `main` y confirmar que la verificación del motor da una diferencia cercana a 1e-14.
-- Correr `python propuestas/verificar_cifras_guion.py` en la máquina donde se graba y comparar con la tabla de arriba. Si alguna cifra cambia de redondeo, ajustar la narración antes de la toma.
+- Correr `python video/verificar_cifras_guion.py` en la máquina donde se graba y comparar con la tabla de arriba. Si alguna cifra cambia de redondeo, ajustar la narración antes de la toma.
 - Abrir una vez cada pantalla del video para que los cálculos queden en caché: 00964 Four-Seam en Player y Simulator; Simulator › Pitch manual con Four-Seam RHP; Scouting › Perfil ideal › Four-Seam; 00776 en Game con 0-2 contra derecho, en Harp Helú y a nivel del mar.
 - Roster por defecto en "Equipo Extreme-1" y temporada 2026.
 - Navegador a pantalla completa, zoom al 100% o 110%, tema oscuro del dashboard, sin otras pestañas ni notificaciones.

@@ -12,6 +12,9 @@ __pycache__/
 .venv/
 
 # Dashboard: tablas generadas por 23 y estado local del usuario
+codigo/dashboard/data
+codigo/dashboard/state
+# Rutas anteriores a la carpeta codigo/ (por si quedan copias locales en la raíz)
 dashboard/data/
 dashboard/state/
 
@@ -22,6 +25,9 @@ dashboard/state/
 prototipo_logs/
 
 # Video del entregable 4 (generado por video/grabar_video.py)
+codigo/video/salida
+codigo/video/voz
+codigo/video/voz_v1
 video/salida/
 video/voz/
 video/voz_v1/

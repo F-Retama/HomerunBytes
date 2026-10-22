@@ -15,7 +15,7 @@ Salidas (CSV en la raiz y parquet en dashboard/data):
                            calidad = el resto. R2 de la mezcla a nivel del mar y en Harp Helu.
   24_arsenal_tipos         Stuff+ medio de liga por tipo (nivel del mar, Harp Helu), ponderado por pitches.
   24_arsenal_top           Los 10 arsenales individuales con mayor Stuff+ en Harp Helu (>= 300 pitches).
-  24_arsenal_contraste     Contraste con resultados reales (Revision_Pre_Guion A7): el Stuff+ pondera sobre todo
+  24_arsenal_contraste     Contraste con resultados reales (revision previa al guion, guia 42.10): el Stuff+ pondera sobre todo
                            swing-and-miss (chase y whiff) y casi nada el roletazo. Pendiente del valor realizado por
                            100 pitches lanzados en Extreme sobre el % de rectas (pitchers con >= 100 pitches en Extreme,
                            ponderada por esos pitches, IC bootstrap por pitcher) y tasa de roletazos de los pitchers con
