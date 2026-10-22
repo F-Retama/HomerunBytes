@@ -45,5 +45,5 @@ python3 video/grabar_video.py --voz-propia video/voz
 | `6c` | Game | (antes: cambia a Nivel del mar) Panel de Lectura | En altitud, dejarla en la zona sale el doble de caro. | 4 s |
 | `7a` | Roster | (antes: regresa al Roster) Roster quieto | Todo se validó fuera de muestra. El AUC de whiff casi no cambia con pitchers que el modelo no vio, con la temporada siguiente y con un entorno de altitud que no vio: 0.625, 0.628 y 0.630. Y Pitching+ predice el valor de cada lanzamiento mejor que el promedio por conteo y outs. Cada lectura muestra su nivel de evidencia. El sistema no dice qué pitch lanzar: dice cuánto vale cada pitch en el Harp Helú y por qué. | 32 s |
 
-Los textos son los de `propuestas/Guion_propuesta.md` partidos en segmentos; las cifras se verificaron en esta Mac el
+Los textos son los de `video/GUION.md` partidos en segmentos; las cifras se verificaron en esta Mac el
 19/10/2026. Pronunciación: "Pitcher 00964" se lee "cero cero nueve seis cuatro"; "0-2" se lee "cero y dos".

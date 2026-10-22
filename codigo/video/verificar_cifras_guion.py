@@ -1,7 +1,7 @@
 """Cifras del guion del video leidas con la misma logica de cada vista del dashboard (motor + tablas de 23/24).
 
 Uso, desde la raiz del repo y con las tablas del dashboard ya generadas (python correr_prototipo.py --sin-abrir):
-    python propuestas/verificar_cifras_guion.py
+    python video/verificar_cifras_guion.py
 """
 import sys
 import warnings
