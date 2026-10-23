@@ -9,8 +9,9 @@ Construimos un sistema que califica cada lanzamiento de la LMB con tres escalas 
 
 | Qué | Dónde |
 | --- | --- |
-| Documento técnico (9 páginas) | [`Documento_Tecnico_Diablos_Rojos.pdf`](Documento_Tecnico_Diablos_Rojos.pdf) |
+| Documento técnico (10 páginas) | [`Documento_Tecnico_Diablos_Rojos.pdf`](Documento_Tecnico_Diablos_Rojos.pdf) |
 | Video del dashboard | [Ver en Google Drive](https://drive.google.com/file/d/19y09JaeqQ2c27uvklJmGwdqo_vco85b7/view?usp=sharing) |
+| Dashboard en línea | Link en el formulario de entrega (se hostea desde un repositorio privado aparte, ver abajo) |
 | Todo el código (pipeline, dashboard y video) | [`codigo/`](codigo/) |
 | Metodología completa, paso a paso | [`ISAC_Diablos_Rojos_Guia_Base_Modelado.docx`](ISAC_Diablos_Rojos_Guia_Base_Modelado.docx) |
 | Historial de decisiones y correcciones | [`HISTORIAL.md`](HISTORIAL.md) |
@@ -67,6 +68,7 @@ Los resultados del documento salen de la cadena **`02 → 17 → 18 → 19 → 2
 | `22_profile_recommendations_export.py` | Perfil ideal, recomendaciones, proyección por pitcher y motor del simulador. |
 | `23_dashboard_data.py` | Tablas del dashboard y reglas de producto (Fit, alertas). |
 | `24_arsenal_harp.py` | Qué arsenal produce el Stuff+ más alto en Harp Helú. |
+| `25_dashboard_lite.py` | Paquete ligero del dashboard para la versión en línea (sin el bundle completo de `18`). |
 
 Los scripts **`01` a `16`** son las etapas previas: exploración, baselines, auditoría de targets y versiones anteriores de los scores y del efecto de altitud. Se conservan por dos razones. Primero, algunos son dependencias de la ruta oficial: `18` importa funciones de `16`, que a su vez usa `04`, `06`, `07` y `13`. Segundo, muestran cómo se llegó al resultado. Qué aportó y qué se descartó en cada uno está en [`HISTORIAL.md`](HISTORIAL.md) y en la guía.
 
@@ -101,14 +103,16 @@ Los scripts **`01` a `16`** son las etapas previas: exploración, baselines, aud
    python 19_validation.py --stage summary
    ```
 
-4. Para correr un script suelto, el orden es el de su número. Cada uno imprime sus resultados y guarda sus salidas (`NN_*.csv`, `.parquet`, `.pkl`) en `codigo/`; `.gitignore` las excluye.
+4. Versión en línea del dashboard: `python 25_dashboard_lite.py` (unos 10 minutos) genera `codigo/dashboard/lite/engine_lite.pkl`, compara contra la versión completa y guarda las diferencias en `25_dashboard_lite_check.csv`. Sin el bundle completo de `18`, el dashboard usa ese paquete automáticamente. Como el paquete trae una muestra de lanzamientos, la app se hostea en Streamlit Community Cloud desde un repositorio privado aparte con solo `dashboard/`, sus tablas y el paquete; este repositorio no los incluye.
+
+5. Para correr un script suelto, el orden es el de su número. Cada uno imprime sus resultados y guarda sus salidas (`NN_*.csv`, `.parquet`, `.pkl`) en `codigo/`; `.gitignore` las excluye.
 
 ## Integridad del proceso
 
 - **Arquitectura congelada antes de validar.** Variables, objetivos y pesos de `18` no cambiaron durante la validación de `19`; los fallos se reportan como hallazgos, por ejemplo que Stuff+ no supera al valor observado para predecir la temporada siguiente.
 - **Sin fuga de información.** El arsenal de cada pitcher se mide contra su recta primaria calculada solo con temporadas anteriores (`04`), y la escala de 2026 usa como referencia 2024–2025.
 - **Trazabilidad.** Cada decisión, corrección y auditoría está fechada en la guía, en `HISTORIAL.md` y en el historial de commits, incluida la corrección de lateralidad del 25/09/2026 y la auditoría previa al guion.
-- **Los datos nunca se subieron.** El historial de git no contiene el dataset ni salidas con datos por lanzamiento.
+- **Los datos nunca se subieron.** El historial de git no contiene el dataset ni salidas con datos por lanzamiento. La versión en línea del dashboard usa un paquete ligero (`25`) con los modelos y una muestra de hasta 50 lanzamientos por pitcher y tipo (27 columnas, sin resultados ni IDs de juego, bateador o catcher). Ese paquete vive solo en el repositorio privado desde el que se hostea la app; su efecto en las cifras está en `25_dashboard_lite_check.csv` y en la sección 7.4 del documento.
 
 ## Uso de IA y trabajo de terceros
 
