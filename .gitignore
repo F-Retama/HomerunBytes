@@ -11,9 +11,12 @@ __pycache__/
 *.pyc
 .venv/
 
-# Dashboard: tablas generadas por 23 y estado local del usuario
+# Dashboard: tablas generadas por 23, paquete ligero de 25 y estado local del usuario.
+# La versión en línea (con el paquete ligero) vive en un repositorio privado aparte, no aquí.
 codigo/dashboard/data
+codigo/dashboard/lite
 codigo/dashboard/state
+!codigo/25_dashboard_lite_check.csv
 # Rutas anteriores a la carpeta codigo/ (por si quedan copias locales en la raíz)
 dashboard/data/
 dashboard/state/

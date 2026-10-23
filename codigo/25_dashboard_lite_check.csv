@@ -1,0 +1,9 @@
+prueba,max_abs,mean_abs,n
+verify_stuff,1.4210854715202004e-14,,25
+verify_location,1.4210854715202004e-14,,25
+verify_pitching,1.4210854715202004e-14,,25
+"simulator_stuff_actual (Stuff+, por entorno)",0.0,0.0,40
+"simulator_escenario (+1 mph, +1 in IVB, Stuff+)",0.7421923266806232,0.11093601250447413,40
+simulator_escenario_sensibilidad (variante oficial),0.7421923266806374,0.11093601250447556,40
+game_pitching_plus (media de la rejilla),0.07066785482777939,0.019830897543372788,10
+"scouting_prospecto (Stuff+, por entorno)",0.40445016960502755,0.21556436650115246,5

@@ -165,3 +165,8 @@ python video/grabar_video.py --voz-propia video/voz           # graba, monta la 
 ```
 
 Salida en `video/salida/` (fuera de git): `video_entrega.mp4` y `subtitulos.srt`. `--remontar` rehace solo el montaje sobre la última toma y `--ensayo` guarda una captura por segmento. Para grabar con voz propia, ver `video/GUION_VOZ.md`. Detalle en la guía, sección 43.
+
+## Versión ligera del dashboard para el jurado (22/10/2026)
+
+El formulario de entrega aclara que el jurado no corre código, así que el dashboard tiene que estar en línea. El bundle de `18` pesa ~400 MB porque guarda todos los lanzamientos. `25_dashboard_lite.py` arma `codigo/dashboard/lite/engine_lite.pkl` (15 MB): los modelos de 2026, una muestra de hasta 50 lanzamientos por pitcher y tipo y de 500 de la liga por tipo y mano (27 columnas, sin resultados ni IDs de juego, bateador o catcher), y los promedios y tablas de referencia calculados con todos los datos. `dashboard/lib/engine.py` lo usa solo cuando no existe el bundle completo. Contra la versión completa: scores oficiales idénticos (1.4e-14), punto de partida del Simulator exacto, escenarios del Simulator 0.11 puntos de Stuff+ en promedio (máximo 0.74), prospectos 0.22 y Game 0.02 (`25_dashboard_lite_check.csv`). El documento técnico suma la nota en la sección 7.4 y la sección 9, *Con más tiempo* (ahora 10 páginas). La app se hostea en Streamlit Community Cloud desde un repositorio privado aparte (`dashboard/`, sus tablas y el paquete); este repositorio público no incluye la muestra. Guía, sección 44.
+

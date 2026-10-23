@@ -51,13 +51,8 @@ base_fb, usage, meta, rows, rows_ars = None, None, {}, None, None
 if mode == "Pitch manual":
     ptype = src[1].selectbox("Tipo de pitch", list(ui.CODE))
     hand = src[2].selectbox("Mano", ["Right", "Left"], format_func=lambda h: "RHP" if h == "Right" else "LHP")
-    m = ((E.F.AutoPitchType.astype(str) == ptype) & (E.F.PitcherThrows.astype(str) == hand)
-         & E.F.altitude_category.astype(str).isin(engine.ENVS)).to_numpy()
-    rows = E.F[m].sample(min(int(m.sum()), 3000), random_state=0).reset_index(drop=True)
+    rows, base = E.manual_rows(ptype, hand)
     rows_ars = np.zeros(len(rows), bool)
-    sea = E.sea_level(rows)
-    base = {f: float(np.nanmean(sea[f])) for f in ["RelSpeed", "InducedVertBreak", "HorzBreak", "SpinRate", "Extension", "RelHeight", "RelSide"]}
-    base["SpinAxis"] = float(np.degrees(np.arctan2(np.nanmean(np.sin(np.radians(sea.SpinAxis))), np.nanmean(np.cos(np.radians(sea.SpinAxis))))) % 360)
     meta = {"pitcher": "Manual", "pitch": ptype, "label": f"{ptype} manual"}
     src[3].markdown(f'<div class="dr-note">Actual = {ptype} promedio de la liga ({"RHP" if hand == "Right" else "LHP"}, a nivel del mar). Para un prospecto, '
                     'mueve los controles a sus métricas medidas a nivel del mar: se simula con la dispersión real de la liga centrada en sus valores '
@@ -81,9 +76,8 @@ else:
     row = ars.set_index("AutoPitchType").loc[ptype]
     hand = {"RHP": "Right", "LHP": "Left"}.get(pool.set_index("pitcher_anon_id").loc[pid, "hand"], "Right")
     rows, rows_ars = E.pitcher_rows(pid, ptype)
-    sea = E.sea_level(rows)
-    base = {f: float(np.nanmean(sea[f])) for f in ["RelSpeed", "InducedVertBreak", "HorzBreak", "SpinRate", "Extension", "RelHeight", "RelSide"]}
-    base["SpinAxis"] = float(np.degrees(np.arctan2(np.nanmean(np.sin(np.radians(sea.SpinAxis))), np.nanmean(np.cos(np.radians(sea.SpinAxis))))) % 360)
+    summ = E.pitcher_summary(pid, ptype)
+    base = {f: summ["base"][f] for f in engine.BASE_FIELDS + ["SpinAxis"]}
     fbs = ars[ars.AutoPitchType.isin(["Four-Seam", "Sinker"])].sort_values("n", ascending=False)
     if len(fbs):
         f = fbs.iloc[0]
@@ -93,8 +87,10 @@ else:
         usage = float(row.usage)
     evidence = row.evidence
     meta = {"pitcher": pid, "pitch": ptype, "label": f"{ui.pid_label(pid)} · {ptype}", "fb": None if base_fb is None else str(fbs.iloc[0].AutoPitchType)}
-    src[3].markdown(f'<div class="dr-note">Punto de partida = sus {len(rows)} {ptype} de 2026, cada uno llevado a nivel del mar; el what-if desplaza todos por igual. '
-                    f'Recta de referencia para el contexto de arsenal: {meta["fb"] or "sin recta primaria"}.</div>', unsafe_allow_html=True)
+    lite_txt = (f'Versión en línea: el what-if usa una muestra de {len(rows)} de esos pitches; el punto de partida usa todos. '
+                if E.lite and len(rows) < summ["n"] else '')
+    src[3].markdown(f'<div class="dr-note">Punto de partida = sus {summ["n"]} {ptype} de 2026, cada uno llevado a nivel del mar; el what-if desplaza todos por igual. '
+                    f'{lite_txt}Recta de referencia para el contexto de arsenal: {meta["fb"] or "sin recta primaria"}.</div>', unsafe_allow_html=True)
 STEP = {f: st_ for f, _l, _u, _s, st_ in FIELDS}
 base = {k: (round(float(v) / STEP[k]) * STEP[k] if k in STEP else float(v)) for k, v in base.items()}
 base.update(AutoPitchType=ptype, PitcherThrows=hand)

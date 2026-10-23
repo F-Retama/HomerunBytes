@@ -4,6 +4,14 @@ Trabaja directamente en convención de diestro (HB, RelSide y SpinAxis ya espeja
 frame del bundle: no se vuelve a espejar. El movimiento de entrada se interpreta como equivalente a
 nivel del mar (No Altitude) y se lleva a cada entorno con los factores validados (20/21/22).
 Verificado contra los scores oficiales de 18 en verify() (Stuff+, Location+ y Pitching+).
+
+Dos modos de carga:
+- completo: el bundle de 18 (18_three_scores_bundle.pkl, ~400 MB con todos los lanzamientos). Es el que se usa al
+  correr el pipeline localmente.
+- ligero: dashboard/lite/engine_lite.pkl (lo genera 25_dashboard_lite.py). Trae solo los modelos de la ventana
+  2026, una muestra de lanzamientos por pitcher y tipo (solo las columnas que usa el modelo, sin resultados ni IDs
+  de juego o bateador), promedios exactos y las tablas de referencia ya calculadas. Es el que corre en la versión
+  hosteada para el jurado. Se usa automáticamente si no existe el bundle completo.
 """
 
 import importlib.util
@@ -15,11 +23,53 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+FULL_BUNDLE = ROOT / "18_three_scores_bundle.pkl"
+LITE_BUNDLE = ROOT / "dashboard" / "lite" / "engine_lite.pkl"
 WINDOW = "2024-2025 -> 2026"
 SCALE = "scale_sin_contact_value"
 ENVS = ["No Altitude", "Medium Altitude", "Extreme Altitude"]
 ENV_LABEL = {"No Altitude": "Nivel del mar", "Medium Altitude": "Medium", "Extreme Altitude": "Harp Helú"}
 SHOW = ["whiff_per_pitch", "chase", "called_strike"]
+
+
+def to_env_frame(frame, from_env, to_env_, fac):
+    """Lleva el movimiento de from_env a to_env_ (factores relativos a No Altitude). Copia de to_env en 22."""
+    f = frame.copy()
+    for var, dcol in [("InducedVertBreak", "ivb_diff_vs_fb"), ("HorzBreak", "hb_diff_vs_fb")]:
+        r_from = 1.0 if from_env == "No Altitude" else fac[from_env][var]
+        r_to = 1.0 if to_env_ == "No Altitude" else fac[to_env_][var]
+        k = r_to / r_from
+        f[var] = f[var] * k; f[dcol] = f[dcol] * k
+    return f
+
+
+def family_predict(models, frame, has_ars, variants):
+    """Predicción por fila con la variante de su nivel de información. Copia de family_predict en 16."""
+    p = np.full(len(frame), np.nan)
+    if "arsenal" in variants and has_ars.any():
+        p[has_ars] = models["arsenal"].predict_proba(frame.loc[has_ars, variants["arsenal"]])[:, 1]
+    rest = ~has_ars if "arsenal" in variants else np.ones(len(frame), bool)
+    if rest.any():
+        p[rest] = models["base"].predict_proba(frame.loc[rest, variants["base"]])[:, 1]
+    return p
+
+
+class ContactValueLite:
+    """Misma rama de contacto que ContactValueModel (16), sin depender del módulo del pipeline."""
+
+    def __init__(self, p_bip, reg):
+        self.p_bip, self.reg = p_bip, reg
+
+    def predict_proba(self, X):
+        x = self.p_bip.predict_proba(X)[:, 1] * self.reg.predict(X)
+        return np.column_stack([-x, x])
+
+
+def circ_mean(deg):
+    return float(np.degrees(np.arctan2(np.nanmean(np.sin(np.radians(deg))), np.nanmean(np.cos(np.radians(deg))))) % 360)
+
+
+BASE_FIELDS = ["RelSpeed", "InducedVertBreak", "HorzBreak", "SpinRate", "Extension", "RelHeight", "RelSide"]
 
 
 def _load(name, filename):
@@ -31,12 +81,27 @@ def _load(name, filename):
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, lite=None):
+        self.lite = (not FULL_BUNDLE.exists()) if lite is None else lite
+        if self.lite:
+            L = joblib.load(LITE_BUNDLE)
+            self.L = L
+            self.fams = L["families"]
+            for d in self.fams.values():
+                for c, vm in d["models"].items():
+                    for v, m in list(vm.items()):
+                        if isinstance(m, dict) and "p_bip" in m:
+                            vm[v] = ContactValueLite(m["p_bip"], m["reg"])
+            self.signs, self.comps, self.fac = L["signs"], L["components"], L["fac"]
+            self.cats, self.ranges = L["cats"], L["ranges"]
+            return
         self.t22 = _load("profile_recommendations_export", "22_profile_recommendations_export.py")
         self.t16, self.t18 = self.t22.t16, self.t22.t18
         self.cfg = self.t18.build_cfg(self.t16.load_modules())
-        self.bundle = joblib.load(ROOT / "18_three_scores_bundle.pkl")
+        self.bundle = joblib.load(FULL_BUNDLE)
         self.entry = self.bundle[WINDOW]
+        self.fams = self.entry["families"]
+        self.signs = self.cfg["signs"]
         self.F = self.entry["future_frame"]
         self.fac = self.t22.factors()[WINDOW]
         self.comps = self.cfg["components"]
@@ -74,21 +139,21 @@ class Engine:
         return df
 
     def to_env(self, df, env):
-        out = self.t22.to_env(df, "No Altitude", env, self.fac)
+        out = to_env_frame(df, "No Altitude", env, self.fac)
         out["altitude_category"] = pd.Categorical([env] * len(out), categories=self.cats["altitude_category"])
         return out
 
     # ---------------- scores ----------------
     def score(self, family, df, has_ars):
-        fam = self.entry["families"][family]
+        fam = self.fams[family]
         w = np.asarray(fam["weights"], float)
         need = {c for c, wi in zip(self.comps, w) if abs(wi) > 1e-9} | set(SHOW)
-        probs = {c: self.t16.family_predict(fam["models"][c], df, has_ars, fam["variants"]) for c in self.comps if c in need}
+        probs = {c: family_predict(fam["models"][c], df, has_ars, fam["variants"]) for c in self.comps if c in need}
         z = np.zeros(len(df))
         for c, wi in zip(self.comps, w):
             if abs(wi) > 1e-9:
                 mu, sd = fam["stats"][c]
-                z += wi * self.cfg["signs"].get(c, 1.0) * (probs[c] - mu) / sd
+                z += wi * self.signs.get(c, 1.0) * (probs[c] - mu) / sd
         m, s = fam["stats"][SCALE]
         return 100 + 10 * (z - m) / s, probs
 
@@ -119,9 +184,41 @@ class Engine:
                  "SpinRate": ["spin_diff_vs_fb"], "SpinAxis": [], "Extension": ["extension_diff_vs_fb"], "RelHeight": [], "RelSide": []}
 
     def pitcher_rows(self, pid, ptype):
+        """Pitches reales del pitcher y tipo. En modo ligero es la muestra guardada (hasta lite["k"] por pitcher y tipo)."""
+        if self.lite:
+            S = self.L["pitcher_rows"]
+            m = ((S["pitcher_anon_id"] == pid) & (S["AutoPitchType"].astype(str) == ptype)).to_numpy()
+            rows = S[m].reset_index(drop=True)
+            rows.attrs["lite_key"] = (pid, ptype)  # population_table usa la tabla exacta guardada para este pitcher
+            return rows, self.L["pitcher_ars"][m]
         m = ((self.F["pitcher_anon_id"] == pid) & (self.F["AutoPitchType"].astype(str) == ptype)
              & self.F["altitude_category"].astype(str).isin(ENVS)).to_numpy()
         return self.F[m].reset_index(drop=True), self.entry["f_ars"][m]
+
+    def pitcher_summary(self, pid, ptype):
+        """Punto de partida del Simulator con TODOS los pitches del pitcher (exacto también en modo ligero):
+        medias a nivel del mar (eje circular), total de pitches, mano y si usa la variante con arsenal."""
+        if self.lite:
+            return dict(self.L["pitcher_summary"][(pid, ptype)])
+        rows, ars = self.pitcher_rows(pid, ptype)
+        sea = self.sea_level(rows)
+        base = {f: float(np.nanmean(sea[f])) if sea[f].notna().any() else np.nan for f in self.NUM_FEATS}
+        base["SpinAxis"] = circ_mean(sea.SpinAxis)
+        return {"base": base, "n": len(rows), "hand": rows.PitcherThrows.astype(str).mode().iloc[0], "ars_share": float(ars.mean())}
+
+    def manual_rows(self, ptype, hand, n=3000):
+        """Pitches de la liga (tipo y mano) para el modo 'Pitch manual' y su promedio a nivel del mar.
+        Modo ligero: la muestra de league_sample; el promedio es el de la muestra completa original (exacto)."""
+        if self.lite:
+            rows = self.league_sample(ptype, hand)[0]
+            return rows, dict(self.L["manual_base"][(ptype, hand)])
+        m = ((self.F.AutoPitchType.astype(str) == ptype) & (self.F.PitcherThrows.astype(str) == hand)
+             & self.F.altitude_category.astype(str).isin(ENVS)).to_numpy()
+        rows = self.F[m].sample(min(int(m.sum()), n), random_state=0).reset_index(drop=True)
+        sea = self.sea_level(rows)
+        base = {f: float(np.nanmean(sea[f])) for f in BASE_FIELDS}
+        base["SpinAxis"] = circ_mean(sea.SpinAxis)
+        return rows, base
 
     def sea_level(self, rows):
         """Cada pitch llevado a su equivalente a nivel del mar desde el entorno donde se lanzó."""
@@ -130,7 +227,7 @@ class Engine:
         for env in ["Medium Altitude", "Extreme Altitude"]:
             m = alt == env
             if m.any():
-                out.loc[m] = self.t22.to_env(rows[m], env, "No Altitude", self.fac)
+                out.loc[m] = to_env_frame(rows[m], env, "No Altitude", self.fac)
         return out
 
     def population_table(self, rows, ars, shifts=None, hybrid=True):
@@ -140,7 +237,24 @@ class Engine:
         hybrid=False: todo con la variante dada por ars (sensibilidad).
         Con shifts, el EFECTO DEL CAMBIO se mide con la variante oficial en cada entorno y se suma a la proyeccion
         hibrida del pitch actual: a nivel del mar el escenario es exactamente el Stuff+ oficial. Mezclar la
-        variante fisica en el cambio (su sensibilidad al IVB es otra) cancelaba ganancias en altitud."""
+        variante fisica en el cambio (su sensibilidad al IVB es otra) cancelaba ganancias en altitud.
+
+        Modo ligero con pitches de un pitcher (rows.attrs['lite_key']): la tabla sin cambios es la exacta, calculada con
+        todos sus pitches; el EFECTO del what-if se estima con la muestra guardada y se suma a esa tabla."""
+        key = rows.attrs.get("lite_key") if self.lite else None
+        if key is not None:
+            out = self.L["pop_exact"][(key, bool(hybrid))].copy()
+            if not any(abs(d) > 1e-12 for d in (shifts or {}).values()):
+                return out
+            s0 = self._population_core(rows, ars, None, hybrid).set_index("env")
+            s1 = self._population_core(rows, ars, shifts, hybrid).set_index("env").reindex(s0.index)
+            out = out.set_index("env")
+            for col in ["stuff_plus", "IVB", "HB"] + [f"p_{c}" for c in SHOW]:
+                out[col] = out[col] + s1[col] - s0[col]
+            return out.reset_index()
+        return self._population_core(rows, ars, shifts, hybrid)
+
+    def _population_core(self, rows, ars, shifts=None, hybrid=True):
         base = self.sea_level(rows)
         if not hybrid:
             return self._score_envs(self._shift(base, shifts), ars)
@@ -191,9 +305,14 @@ class Engine:
         self.__dict__.setdefault("_samples", {})
         key = (ptype, hand)
         if key not in self._samples:
-            m = ((self.F.AutoPitchType.astype(str) == ptype) & (self.F.PitcherThrows.astype(str) == hand)
-                 & self.F.altitude_category.astype(str).isin(ENVS)).to_numpy()
-            rows = self.F[m].sample(min(int(m.sum()), n), random_state=0).reset_index(drop=True)
+            if self.lite:
+                S = self.L["league_rows"]
+                m = ((S.AutoPitchType.astype(str) == ptype) & (S.PitcherThrows.astype(str) == hand)).to_numpy()
+                rows = S[m].reset_index(drop=True)
+            else:
+                m = ((self.F.AutoPitchType.astype(str) == ptype) & (self.F.PitcherThrows.astype(str) == hand)
+                     & self.F.altitude_category.astype(str).isin(ENVS)).to_numpy()
+                rows = self.F[m].sample(min(int(m.sum()), n), random_state=0).reset_index(drop=True)
             sea = self.sea_level(rows)
             means = {f: float(np.nanmean(sea[f])) for f in self.SHIFTABLE if f != "SpinAxis"}
             means["SpinAxis"] = float(np.degrees(np.arctan2(np.nanmean(np.sin(np.radians(sea.SpinAxis))),
@@ -224,6 +343,8 @@ class Engine:
         """Δ de altitud de la liga (2026) con la variante SIN arsenal, por pitcher x tipo y por pitcher.
         Referencia justa para prospectos evaluados con esa variante (la variante cambia mucho el Δ de
         slider y changeup: con arsenal se penaliza que su separación contra la recta también se encoja)."""
+        if self.lite:
+            return self.L["reference_base"]
         if "_ref_base" not in self.__dict__:
             m = self.F.altitude_category.astype(str).isin(ENVS).to_numpy()
             rows = self.F[m].reset_index(drop=True)
@@ -245,12 +366,8 @@ class Engine:
 
     def pitch_means(self, pid, ptype):
         """Pitch representativo del pitcher (medias a nivel del mar, eje circular) y si usa la variante con arsenal."""
-        rows, ars = self.pitcher_rows(pid, ptype)
-        sea = self.sea_level(rows)
-        m = {c: float(np.nanmean(sea[c])) if sea[c].notna().any() else np.nan for c in self.NUM_FEATS}
-        m["SpinAxis"] = float(np.degrees(np.arctan2(np.nanmean(np.sin(np.radians(sea.SpinAxis))), np.nanmean(np.cos(np.radians(sea.SpinAxis))))) % 360)
-        m["PitcherThrows"] = rows.PitcherThrows.astype(str).mode().iloc[0]
-        return m, bool(ars.mean() >= 0.5), len(rows)
+        s = self.pitcher_summary(pid, ptype)
+        return {**s["base"], "PitcherThrows": s["hand"]}, bool(s["ars_share"] >= 0.5), s["n"]
 
     MAX_GRID_ROWS = 150  # muestra fija de pitches reales por celda (velocidad); el promedio poblacional casi no cambia
 
@@ -272,11 +389,11 @@ class Engine:
         n, L = len(sea), len(xs)
         big = self._context_frame(sea, ctx, xs, ys)
         a_off, a_phys = np.repeat(ars, L), np.zeros(n * L, bool)
-        fam = self.entry["families"]["pitching"]
+        fam = self.fams["pitching"]
 
         def evaluate(x, a):
             pp_, pr_ = self.score("pitching", x, a)
-            cv_ = self.t16.family_predict(fam["models"]["contact_value"], x, a, fam["variants"])
+            cv_ = family_predict(fam["models"]["contact_value"], x, a, fam["variants"])
             return {"pitching_plus": pp_, "contact_value": cv_, **{c: pr_[c] for c in SHOW}}
         sea_x = self.to_env(big, "No Altitude")
         out = evaluate(sea_x, a_off)
@@ -302,7 +419,7 @@ class Engine:
         """Pitching+, probabilidades y daño esperado en contacto (runs/100, + = más daño) en una rejilla de ubicaciones,
         promediados sobre los pitches reales del pitcher (poblacion, como el What-if y Player)."""
         sea, ars = self.grid_rows(pid, ptype)
-        n_total = int(self.pitcher_rows(pid, ptype)[1].size)
+        n_total = int(self.pitcher_summary(pid, ptype)["n"])
         xs, ys = np.linspace(-1.5, 1.5, nx), np.linspace(0.8, 4.0, ny)
         gx, gy = np.meshgrid(xs, ys)
         r = self.population_pitching(sea, ars, ctx, gx.ravel(), gy.ravel(), env)
@@ -335,7 +452,11 @@ class Engine:
 
     # ---------------- verificación ----------------
     def verify(self, k=25, seed=0):
-        """Reproduce los scores oficiales de 18 para pitches reales (fila completa del bundle)."""
+        """Reproduce los scores oficiales de 18 para pitches reales (fila completa del bundle).
+        Modo ligero: los mismos k pitches y sus scores oficiales vienen guardados en el paquete."""
+        if self.lite:
+            V = self.L["verify"]
+            return {fam: float(np.max(np.abs(self.score(fam, V["rows"], V["ars"])[0] - V[fam]))) for fam in ["stuff", "location", "pitching"]}
         sc = pd.read_csv(ROOT / "18_three_scores.csv", usecols=["window", "stuff_plus", "location_plus", "pitching_plus"])
         sc = sc[sc.window == WINDOW].reset_index(drop=True)
         idx = np.random.default_rng(seed).choice(len(self.F), k, replace=False)
