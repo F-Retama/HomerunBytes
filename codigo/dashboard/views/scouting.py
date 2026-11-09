@@ -34,8 +34,9 @@ TYPES = list(ui.CODE)
 state = data.read_state()
 P, A, H = data.load("pitchers"), data.load("arsenal"), data.load("history")
 top = st.columns([2.2, 1.6], vertical_alignment="bottom")
-top[0].markdown('<div class="dr-h1">Scouting</div><div class="dr-sub">Qué perfil buscar, quién lo tiene y cómo se proyecta en Harp Helú</div>',
-                unsafe_allow_html=True)
+with top[0]:
+    ui.title("Scouting · reclutamiento", "¿Quién se parece al pitcher ideal para el Harp Helú?",
+             "Primero el perfil ideal; después los candidatos reales, ordenados por cómo rendirían aquí y no a nivel del mar.")
 with top[1]:
     st.markdown(f'<div style="display:flex;justify-content:flex-end;margin-bottom:8px">{ui.env_badge()}</div>', unsafe_allow_html=True)
     yrs = data.seasons()
@@ -43,6 +44,55 @@ with top[1]:
 SL = data.get_shortlist()
 if st.session_state.get("sl_msg"):
     st.toast(st.session_state.pop("sl_msg"), icon="✅")
+
+# ---------------- arriba: perfil ideal + candidatos (el hook de reclutamiento) ----------------
+EVL = data.load("evidence_levels").set_index("AutoPitchType")
+COMP = data.load("arsenal_composicion") if data.has("arsenal_composicion") else None
+comp_html = ""
+if COMP is not None and len(COMP[COMP.year == year]):
+    cy = COMP[COMP.year == year].sort_values("stuff_harp", ascending=False)
+    hi_, lo_ = cy.iloc[0], cy.iloc[-1]
+    comp_html = "".join(
+        f'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#2A2A2A;border-radius:10px;margin-top:8px">'
+        f'<span style="font:400 14px Inter">{lab} · {ui.esc(r.composicion.replace("+", " + "))}</span>'
+        f'<span style="font:700 22px Space Grotesk;color:{col}">{r.stuff_harp:.1f}</span></div>'
+        for lab, r, col in [("Arsenal más alto", hi_, "#FFFFFF"), ("Arsenal más bajo", lo_, "#F59A9D")])
+rule = {"Robusto": ("descontar", ui.TEXT_RED), "Condicional": ("parcial", ui.DIM), "Incierto": ("no descontar", ui.TEXT)}
+rule_rows = "".join(
+    f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EEE6D6;font-size:14px">'
+    f'<span>{ui.PITCH_ES[t]}</span><span style="font-weight:700;color:{rule[EVL.loc[t, "nivel_evidencia"]][1]}">'
+    f'{EVL.loc[t, "delta_2026"]:+.1f} · {rule[EVL.loc[t, "nivel_evidencia"]][0]}</span></div>'
+    for t in EVL.sort_values("delta_2026").index if t in ui.PITCH_ES)
+cand = P[(P.year == year) & (P.n >= 300) & P.exceso.notna() & (P.exceso >= 0) & P.stuff_harp.notna()
+         & (P.team_home_env != "Extreme Altitude")].sort_values("stuff_harp", ascending=False).head(5)
+L, R_ = st.columns([1, 1.9], gap="large")
+L.markdown(f'<div class="dr-card-dark"><div class="dr-label">El perfil ideal</div>'
+           f'<div style="font:700 21px/1.25 Space Grotesk;margin:8px 0 6px">Depende menos de la recta y la acompaña con slider o cutter</div>'
+           f'{comp_html}<div style="font:400 12.5px/1.5 Inter;color:#BDBDBD;margin-top:12px">La mezcla de pitches explica poco de las diferencias: '
+           f'pesa más la calidad de cada pitch. Lectura descriptiva, no causal.</div></div>'
+           f'<div class="dr-card" style="margin-top:14px"><div class="dr-h2" style="font-size:17px;margin-bottom:6px">Cuánto descontar por tipo de pitch</div>'
+           f'{rule_rows}</div>', unsafe_allow_html=True)
+with R_:
+    ui.html_block(f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
+                  f'<span class="dr-h2">Candidatos que caen menos de lo esperado</span><span>{ui.brecha_legend()}</span></div>'
+                  f'<div class="dr-note" style="margin-bottom:10px">Equipos fuera de altitud extrema · 300+ pitches en {year} · orden: Stuff+ proyectado en Harp Helú</div>')
+    if cand.empty:
+        st.info("Ningún candidato cumple el filtro esta temporada.")
+    for r in cand.itertuples():
+        mix = A[(A.year == year) & (A.pitcher_anon_id == r.pitcher_anon_id) & (A.usage >= 0.1)].sort_values("usage", ascending=False)
+        mix_txt = " · ".join(f"{ui.PITCH_ES[m.AutoPitchType].lower()} {m.usage:.0%}" for m in mix.itertuples())
+        st.markdown(
+            f'<div class="dr-card" style="display:flex;flex-wrap:wrap;gap:20px;margin-bottom:12px">'
+            f'<div style="flex:1 1 200px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font:700 19px Space Grotesk">'
+            f'{ui.pid_label(r.pitcher_anon_id)}</b>{ui.fit_pill(r.fit)}</div>'
+            f'<div class="dr-note" style="margin-top:4px">{r.role} · {r.hand} · {ui.esc(r.team_label)}</div>'
+            f'<div class="dr-note" style="margin-top:2px">{ui.esc(mix_txt.capitalize())}</div>'
+            f'<div style="font:600 14px Inter;margin-top:8px">Stuff+ {r.stuff_mar:.1f} → {r.stuff_harp:.1f} · {r.exceso:+.1f} vs. esperado</div></div>'
+            f'<div style="flex:1.4 1 300px;align-self:center">{ui.brecha(r.delta - r.exceso, r.delta, scale=10, compact=True)}'
+            f'<div style="text-align:right;margin-top:10px"><a class="dr-btn-ghost" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}">Ver ficha</a></div></div></div>',
+            unsafe_allow_html=True)
+
+ui.mas_detalle("Más herramientas de Scouting")
 tabs = st.tabs(["Perfil ideal", "Explorar liga", "Evaluar prospecto", "Comparar", f"Shortlist ({len(SL)})", "Arsenal ideal"])
 
 
@@ -72,7 +122,7 @@ with tabs[0]:
             f'<div><div class="dr-label">Observado mismo pitcher</div><span class="dr-kpi-v" style="color:{ui.DIM}">'
             f'{"—" if ev.observado_2026 != ev.observado_2026 else f"{ev.observado_2026:+.1f}"}</span></div>'
             f'<div><div class="dr-label">Evidencia</div><div style="margin-top:10px">{ui.conf_bars(lvl)}</div></div></div>'
-            f'<div style="font:500 13.5px/1.5 IBM Plex Sans;color:{ui.TEXT}">{ui.esc(REC.loc[t, "recomendacion"])}</div></div>', unsafe_allow_html=True)
+            f'<div style="font:500 13.5px/1.5 Inter;color:{ui.TEXT}">{ui.esc(REC.loc[t, "recomendacion"])}</div></div>', unsafe_allow_html=True)
         v = PV[PV.AutoPitchType == t].set_index("resultado")
         s = STB.set_index("AutoPitchType").loc[t]
         vtxt = "".join(f'<div style="display:flex;justify-content:space-between;margin-top:8px"><span>{lab}</span><b class="dr-mono">'
@@ -174,11 +224,11 @@ with tabs[5]:
                              f"valen casi el doble (H3) y el Stuff+ casi no pondera.")
             st.markdown(
                 f'<div class="dr-card"><div class="dr-label">¿Qué arsenal produce el Stuff+ más alto en Harp Helú? · {year}</div>'
-                f'<div style="font:600 15px/1.5 IBM Plex Sans;margin-top:8px">En Stuff+, el que depende menos de la recta y la acompaña con pitches que el aire '
+                f'<div style="font:600 15px/1.5 Inter;margin-top:8px">En Stuff+, el que depende menos de la recta y la acompaña con pitches que el aire '
                 f'casi no toca (slider, cutter, changeup): cada +10 puntos porcentuales de rectas (Four-Seam + Sinker) cuestan {abs(s_d.delta):.2f} de Stuff+ '
                 f'adicionales en Harp Helú [{s_d.ci95_lo:+.2f}, {s_d.ci95_hi:+.2f}]; a nivel del mar no cambian el Stuff+ '
                 f'({s_mar.delta:+.2f} [{s_mar.ci95_lo:+.2f}, {s_mar.ci95_hi:+.2f}]).</div>'
-                + (f'<div style="font:600 14px/1.5 IBM Plex Sans;margin-top:8px;color:{ui.YEL}">{real_txt}</div>' if real_txt else '')
+                + (f'<div style="font:600 14px/1.5 Inter;margin-top:8px;color:{ui.YEL}">{real_txt}</div>' if real_txt else '')
                 + f'<div class="dr-note" style="margin-top:8px">Lectura: es una vista de swing-and-miss (el Stuff+ pondera sobre todo chase y whiff), no una '
                 f'recomendación de roster; no descartar a un sinkerballer por ella. La pendiente es casi aritmética: las rectas pierden más en altitud y el resto '
                 f'casi nada. La mezcla de tipos explica solo {am.r2_mezcla_harp:.0%} de las diferencias de Stuff+ entre pitchers en Harp Helú '
@@ -190,15 +240,15 @@ with tabs[5]:
                 o = ac.sort_values("stuff_harp")
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=o.stuff_mar, y=o.composicion, mode="markers", name="Nivel del mar",
-                                         marker=dict(size=11, color="rgba(0,0,0,0)", line=dict(color="#9b9da4", width=2))))
+                                         marker=dict(size=11, color="rgba(0,0,0,0)", line=dict(color="#A39E94", width=2))))
                 fig.add_trace(go.Scatter(x=o.stuff_harp, y=o.composicion, mode="markers", name="Harp Helú (IC 95%)",
                                          marker=dict(size=12, color=ui.ACCENT), error_x=dict(type="data", symmetric=False, array=o.ci95_hi - o.stuff_harp,
-                                                                                            arrayminus=o.stuff_harp - o.ci95_lo, color="rgba(212,38,47,.5)", thickness=1.5),
+                                                                                            arrayminus=o.stuff_harp - o.ci95_lo, color="rgba(227,30,36,.5)", thickness=1.5),
                                          customdata=o.n_pitchers, hovertemplate="%{y}<br>Harp Helú %{x:.1f} · %{customdata} pitchers<extra></extra>"))
                 fig.update_layout(height=60 + 30 * len(o), margin=dict(l=10, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                                  font=dict(family="IBM Plex Sans", color=ui.DIM, size=11), legend=dict(font=dict(size=10), orientation="h", y=1.06, x=0),
-                                  xaxis=dict(title="Stuff+ del arsenal (ponderado por uso, promedio de pitchers)", gridcolor="rgba(255,255,255,0.05)"),
-                                  yaxis=dict(tickfont=dict(family="IBM Plex Mono", size=11, color=ui.TEXT),
+                                  font=dict(family="Inter", color=ui.DIM, size=11), legend=dict(font=dict(size=10), orientation="h", y=1.06, x=0),
+                                  xaxis=dict(title="Stuff+ del arsenal (ponderado por uso, promedio de pitchers)", gridcolor="rgba(17,17,17,0.05)"),
+                                  yaxis=dict(tickfont=dict(family="Inter", size=11, color=ui.TEXT),
                                              ticktext=[f"{r.composicion}  ·  n {r.n_pitchers}" for r in o.itertuples()], tickvals=o.composicion))
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
                 pv = AC.pivot(index="composicion", columns="year", values="stuff_harp").dropna()
@@ -261,19 +311,19 @@ with tabs[1]:
     with c[0]:
         R = pool[pool.n >= 300]
         fig = go.Figure()
-        fig.add_vline(x=q75, line=dict(color="rgba(255,255,255,0.18)", dash="dot")); fig.add_hline(y=v50, line=dict(color="rgba(255,255,255,0.18)", dash="dot"))
-        for sgl, col in [("", "#6b6e75"), ("Stuff+ por encima de resultados", ui.GRN), ("Resultados por encima de Stuff+", ui.YEL)]:
+        fig.add_vline(x=q75, line=dict(color="rgba(17,17,17,0.18)", dash="dot")); fig.add_hline(y=v50, line=dict(color="rgba(17,17,17,0.18)", dash="dot"))
+        for sgl, col in [("", "#A39E94"), ("Stuff+ por encima de resultados", ui.GRN), ("Resultados por encima de Stuff+", ui.YEL)]:
             m = R[R.signal == sgl]
             fig.add_trace(go.Scatter(x=m.stuff_harp, y=m.value_per_100, mode="markers", name=sgl or "Resto",
-                                     marker=dict(color=col, size=8, line=dict(color="#15161a", width=1)),
+                                     marker=dict(color=col, size=8, line=dict(color="#FFFFFF", width=1)),
                                      text=[ui.pid_label(x) for x in m.pitcher_anon_id], hovertemplate="%{text}<br>Stuff+ Harp %{x:.1f}<br>Valor/100 %{y:+.2f}<extra></extra>"))
         fig.update_layout(height=420, margin=dict(l=40, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                          font=dict(family="IBM Plex Sans", color=ui.DIM, size=11), legend=dict(orientation="h", y=1.1, font=dict(size=10)),
-                          xaxis=dict(title="Stuff+ proyectado en Harp Helú", gridcolor="rgba(255,255,255,0.05)"),
-                          yaxis=dict(title="Valor realizado (runs / 100 pitches)", gridcolor="rgba(255,255,255,0.05)"))
+                          font=dict(family="Inter", color=ui.DIM, size=11), legend=dict(orientation="h", y=1.1, font=dict(size=10)),
+                          xaxis=dict(title="Stuff+ proyectado en Harp Helú", gridcolor="rgba(17,17,17,0.05)"),
+                          yaxis=dict(title="Valor realizado (runs / 100 pitches)", gridcolor="rgba(17,17,17,0.05)"))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     with c[1]:
-        st.markdown(f'<div class="dr-card"><div class="dr-label">Cómo leer el mapa</div><div style="font:500 13.5px/1.5 IBM Plex Sans;margin-top:8px">'
+        st.markdown(f'<div class="dr-card"><div class="dr-label">Cómo leer el mapa</div><div style="font:500 13.5px/1.5 Inter;margin-top:8px">'
                     f'<span style="color:{ui.GRN}">●</span> <b>Stuff+ por encima de resultados</b>: calidad física en el cuartil alto pero valor realizado bajo la '
                     f'mediana: posible infravalorado.<br><span style="color:{ui.YEL}">●</span> <b>Resultados por encima de Stuff+</b>: buenos resultados con '
                     f'Stuff+ bajo: riesgo de regresión.</div></div>', unsafe_allow_html=True)

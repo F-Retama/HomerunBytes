@@ -17,8 +17,8 @@ if not data.data_ready():
     st.stop()
 
 top = st.columns([2.2, 1.6], vertical_alignment="bottom")
-top[0].markdown('<div class="dr-h1">Pitching Staff</div><div class="dr-sub">Overview del roster y adaptación al Harp Helú</div>',
-                unsafe_allow_html=True)
+with top[0]:
+    ui.title("Roster · cada semana", "¿A quién reviso primero esta semana?", "Overview del roster y adaptación al Harp Helú.")
 with top[1]:
     st.markdown(f'<div style="display:flex;justify-content:flex-end;margin-bottom:8px">{ui.env_badge()}</div>', unsafe_allow_html=True)
     year, source, ids = data.season_and_roster(st)
@@ -54,7 +54,7 @@ n_sp, n_rp = int((P.role == "SP").sum()), int((P.role == "RP").sum())
 fitc = P.fit.value_counts()
 tot = max(len(P), 1)
 bars = "".join(f'<div style="flex:{fitc.get(fl, 0)};height:6px;border-radius:3px;background:{c}"></div>'
-               for fl, c in [("Strong Fit", "#e9e7e2"), ("Moderate Fit", "#9a9ca2"), ("Low Fit", "#5d5f65"), ("Poor Fit", "#3a3c42")] if fitc.get(fl, 0))
+               for fl, c in [("Strong Fit", "#111111"), ("Moderate Fit", "#5E5A54"), ("Low Fit", "#A39E94"), ("Poor Fit", "#E31E24")] if fitc.get(fl, 0))
 # Para comparar pitchers se usa el Stuff+ equivalente a nivel del mar: el de temporada "tal como se lanzó" baja con cada pitch
 # lanzado en altitud (guía 36.3), así que penalizaría a los pitchers que lanzan de local en Extreme (regla de la guía 40.1).
 Pm = P[P.stuff_mar.notna()]
@@ -75,7 +75,7 @@ for col, html in zip(k, cards):
     col.markdown(f'<div class="dr-card" style="height:104px">{html}</div>', unsafe_allow_html=True)
 
 st.write("")
-left, right = st.columns([1.25, 1])
+left = st.container()
 
 # ---------------- Recommendation Inbox ----------------
 with left:
@@ -89,19 +89,24 @@ with left:
     if I.empty:
         st.markdown('<div class="dr-card dr-note">Sin alertas ni oportunidades para los filtros actuales.</div>', unsafe_allow_html=True)
     fit_by = P.set_index("pitcher_anon_id")
+    ex_by = A.set_index(["pitcher_anon_id", "AutoPitchType"])
+    st.markdown(f'<div style="margin:-4px 0 10px">{ui.brecha_legend()}</div>', unsafe_allow_html=True)
     for _, r in I.head(4).iterrows():
         pp = fit_by.loc[r.pitcher_anon_id]
+        ar = ex_by.loc[(r.pitcher_anon_id, r.AutoPitchType)] if (r.pitcher_anon_id, r.AutoPitchType) in ex_by.index else None
+        gap = ("" if r.type == "Opportunity" or ar is None or ar.exceso != ar.exceso or ar.delta != ar.delta
+               else f'<div style="max-width:560px;margin:4px 0 10px">{ui.brecha(ar.delta - ar.exceso, ar.delta, scale=10, compact=True)}</div>')
         st.markdown(
             f'<div class="dr-card" style="display:flex;gap:18px;align-items:center;margin-bottom:10px">'
             f'<div style="flex:1"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">{ui.type_badge(r.type)}'
-            f'<b style="font:700 15px IBM Plex Sans">{ui.pid_label(r.pitcher_anon_id)}</b>{ui.fit_pill(pp.fit)}'
+            f'<b style="font:700 15px Inter">{ui.pid_label(r.pitcher_anon_id)}</b>{ui.fit_pill(pp.fit)}'
             f'<span class="dr-note">{pp.role} · {pp.hand}</span></div>'
-            f'<div style="font:700 19px/1.25 IBM Plex Sans;color:{ui.TEXT};margin:10px 0">{ui.esc(r.headline)}</div>'
+            f'<div style="font:700 19px/1.25 Space Grotesk;color:{ui.TEXT};margin:10px 0">{ui.esc(r.headline)}</div>{gap}'
             f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{r.code}</span>'
             f'{r.AutoPitchType}</span><span class="dr-note">{ui.esc(r.evidence_text)}</span></div></div>'
             f'<div style="border-left:1px solid {ui.LINE};padding-left:16px;min-width:130px"><div class="dr-label">Confianza · altitud</div>'
             f'<div style="margin-top:8px">{ui.conf_bars(r.confidence)}</div></div>'
-            f'<a class="dr-btn" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}&pitch={r.AutoPitchType}">Review →</a></div>',
+            f'<a class="dr-btn" target="_self" href="player?pid={r.pitcher_anon_id}&season={year}&pitch={r.AutoPitchType}">Revisar</a></div>',
             unsafe_allow_html=True)
     if len(I) > 4:
         with st.expander(f"Ver {len(I) - 4} items más"):
@@ -110,28 +115,30 @@ with left:
                             f'<a target="_self" href="player?pid={r.pitcher_anon_id}&season={year}&pitch={r.AutoPitchType}">Review →</a>', unsafe_allow_html=True)
 
 # ---------------- Harp Helú Roster Map ----------------
+ui.mas_detalle()
+right = st.container()
 with right:
     st.markdown('<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
                 '<span class="dr-h2">Harp Helú Roster Map</span><span class="dr-note">Stuff+ × adaptación vs. lo esperado</span></div>', unsafe_allow_html=True)
     M = V[(V.fit != "Sin muestra") & V.stuff_mar.notna()]
     fig = go.Figure()
     for y0, y1, lab in [(75, 100, "Pierde menos<br>de lo esperado"), (50, 75, ""), (25, 50, ""), (0, 25, "Pierde más<br>de lo esperado")]:
-        fig.add_hrect(y0=y0, y1=y1, fillcolor="rgba(255,255,255,0.025)" if lab in ("Strong Fit", "Low Fit") else "rgba(0,0,0,0)", line_width=0)
+        fig.add_hrect(y0=y0, y1=y1, fillcolor="rgba(17,17,17,0.025)" if lab in ("Strong Fit", "Low Fit") else "rgba(0,0,0,0)", line_width=0)
         fig.add_annotation(x=0, xref="paper", y=(y0 + y1) / 2, text=f"<b>{lab}</b>", showarrow=False, xanchor="right", xshift=-8,
-                           font=dict(size=11, color="#c6c8cd"))
-    fig.add_vline(x=100, line=dict(color="rgba(255,255,255,0.18)", dash="dot"))
+                           font=dict(size=11, color="#4D4A45"))
+    fig.add_vline(x=100, line=dict(color="rgba(17,17,17,0.18)", dash="dot"))
     for al, (c, lab) in ui.ALERT.items():
         m = M[M.alert == al]
         fig.add_trace(go.Scatter(x=m.stuff_mar, y=100 * m.exceso_pct, mode="markers+text", name=lab,
                                  text=[ui.pid_label(x).replace("Pitcher ", "") for x in m.pitcher_anon_id], textposition="middle right",
-                                 textfont=dict(size=10, color="#c6c8cd"),
-                                 marker=dict(color=c, size=10 + np.sqrt(m.n) / 4, line=dict(color="#15161a", width=2)),
+                                 textfont=dict(size=10, color="#4D4A45"),
+                                 marker=dict(color=c, size=10 + np.sqrt(m.n) / 4, line=dict(color="#FFFFFF", width=2)),
                                  customdata=np.stack([m.pitcher_anon_id, m.delta, m.n, m.stuff_harp, m.stuff_plus], axis=1) if len(m) else None,
                                  hovertemplate="%{customdata[0]}<br>Stuff+ nivel del mar %{x:.1f} · en Harp Helú %{customdata[3]:.1f}"
                                                "<br>temporada tal cual %{customdata[4]:.1f}<br>Δ altitud %{customdata[1]:+.1f}<br>n %{customdata[2]}<extra></extra>"))
     fig.update_layout(height=430, margin=dict(l=110, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                      font=dict(family="IBM Plex Sans", color=ui.DIM), legend=dict(orientation="h", y=1.08, x=0, font=dict(size=11)),
-                      xaxis=dict(title="Stuff+ a nivel del mar →", gridcolor="rgba(255,255,255,0.05)", zeroline=False,
+                      font=dict(family="Inter", color=ui.DIM), legend=dict(orientation="h", y=1.08, x=0, font=dict(size=11)),
+                      xaxis=dict(title="Stuff+ a nivel del mar →", gridcolor="rgba(17,17,17,0.05)", zeroline=False,
                                  range=[min(M.stuff_mar.min(), 95) - 1.5, max(M.stuff_mar.max(), 105) + 3] if len(M) else None),
                       yaxis=dict(title=None, range=[0, 100], showticklabels=False, gridcolor="rgba(0,0,0,0)"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})

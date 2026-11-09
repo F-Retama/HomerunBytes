@@ -33,10 +33,11 @@ FIELDS = [("RelSpeed", "Velocidad", "mph", 5.0, 0.1), ("InducedVertBreak", "IVB 
           ("SpinAxis", "Eje de spin (convención diestro)", "°", 45.0, 1.0), ("Extension", "Extensión", "ft", 1.0, 0.05),
           ("RelHeight", "Altura de release", "ft", 0.8, 0.05)]
 
-top = st.columns([2.2, 1.6], vertical_alignment="bottom")
-top[0].markdown('<div class="dr-h1">Simulator</div><div class="dr-sub">Mismo pitch a nivel del mar vs. Harp Helú, y qué pasa si cambia su física o su ubicación</div>',
-                unsafe_allow_html=True)
-top[1].markdown(f'<div style="display:flex;justify-content:flex-end">{ui.env_badge()}</div>', unsafe_allow_html=True)
+top = st.columns([2.6, 1.2], vertical_alignment="bottom")
+with top[0]:
+    ui.title("Simulator · desarrollo", "¿Qué ajuste recupera lo que este pitch pierde en la altura?",
+             "El mismo pitch en cada entorno, su caída contra lo esperado y el efecto de un cambio antes de trabajarlo con el pitcher.")
+top[1].markdown(f'<div style="display:flex;justify-content:flex-end;margin-bottom:18px">{ui.env_badge()}</div>', unsafe_allow_html=True)
 
 # ---------------- origen del pitch ----------------
 qp, state = st.query_params, data.read_state()
@@ -96,6 +97,21 @@ base = {k: (round(float(v) / STEP[k]) * STEP[k] if k in STEP else float(v)) for 
 base.update(AutoPitchType=ptype, PitcherThrows=hand)
 key = f"{meta['pitcher']}|{ptype}|{hand}"
 
+# ---------------- diferenciador: caída de este pitch contra la esperada para su tipo y nivel ----------------
+if mode != "Pitch manual" and row.delta == row.delta and row.exceso == row.exceso:
+    esp = row.delta - row.exceso
+    msg = ("Pierde más de lo esperado para su nivel: la caída es de este pitch y vale la pena trabajarlo." if row.exceso <= -1 else
+           "Pierde menos de lo esperado para su nivel." if row.exceso >= 0.5 else "Pierde lo esperado para un pitch de su tipo y nivel.")
+    b = st.columns([1.6, 1], gap="large")
+    b[0].markdown(f'<div class="dr-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+                  f'<span class="dr-h2" style="font-size:18px">{ui.PITCH_ES[ptype]} · {ui.pid_label(pid)}</span><span>{ui.brecha_legend()}</span></div>'
+                  f'{ui.brecha(esp, row.delta)}</div>', unsafe_allow_html=True)
+    b[1].markdown(f'<div class="dr-card-dark" style="height:100%"><div class="dr-label">Lectura</div>'
+                  f'<div style="font:600 17px/1.45 Inter;margin-top:10px">{msg}</div>'
+                  f'<div style="font:400 13px/1.5 Inter;color:#DADADA;margin-top:10px">Stuff+ {row.stuff_mar:.1f} a nivel del mar → {row.stuff_harp:.1f} en Harp Helú. '
+                  f'Prueba abajo qué cambio recupera parte de la caída.</div></div>', unsafe_allow_html=True)
+ui.mas_detalle("What-if, ubicación y experimentos")
+
 if st.session_state.pop("saved_msg", None):
     st.toast("Experimento guardado.", icon="✅")
 tabs = st.tabs(["What-if · Altitud", "Ubicación · Location+", f"Experimentos guardados ({len(data.list_experiments())})"])
@@ -141,7 +157,7 @@ with tabs[0]:
         for col, (i, r) in zip(cards, ts.iterrows()):
             b = tb.loc[i]
             d = r.stuff_plus - b.stuff_plus
-            hl = "border-color:rgba(212,38,47,.55);" if r.env == "Extreme Altitude" else ""
+            hl = "border-color:rgba(227,30,36,.55);" if r.env == "Extreme Altitude" else ""
             col.markdown(f'<div class="dr-card" style="{hl}"><div class="dr-label">{r.label}</div>'
                          f'<div style="margin-top:8px"><span class="dr-kpi-v">{r.stuff_plus:.1f}</span> <span class="dr-kpi-s">Stuff+ escenario</span></div>'
                          f'<div class="dr-note" style="margin-top:6px">Actual {b.stuff_plus:.1f} · cambio {ui.delta_fmt(d)}</div></div>', unsafe_allow_html=True)
@@ -158,24 +174,24 @@ with tabs[0]:
                     unsafe_allow_html=True)
         g = st.columns([1.3, 1])
         fig = go.Figure()
-        fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(255,255,255,0.15)"))
+        fig.add_hline(y=0, line=dict(color="rgba(17,17,17,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(17,17,17,0.15)"))
         with g[0]:
             show_lg = st.toggle(f"Comparar con los {ptype} de la liga con más y menos whiff real", value=True, key="sim_mm")
         mm = data.movement_map(year)
         mm = mm[(mm.AutoPitchType == ptype) & (mm.grupo != "Resto")]
         if show_lg and len(mm):
             ui.movement_traces(fig, mm, "harp", size=7)
-        for df_, name, color in [(tb, "Actual", "#eeede9"), (ts, "Escenario", ui.ACCENT)]:
+        for df_, name, color in [(tb, "Actual", "#111111"), (ts, "Escenario", ui.ACCENT)]:
             d = df_.set_index("env")
             fig.add_trace(go.Scatter(x=d.HB, y=d.IVB, mode="lines", line=dict(color=color, dash="dot", width=1.5), showlegend=False, hoverinfo="skip"))
             fig.add_trace(go.Scatter(x=[d.loc["No Altitude", "HB"]], y=[d.loc["No Altitude", "IVB"]], mode="markers", name=f"{name} · nivel del mar",
                                      marker=dict(size=16, color="rgba(0,0,0,0)", line=dict(color=color, width=2.5))))
             fig.add_trace(go.Scatter(x=[d.loc["Extreme Altitude", "HB"]], y=[d.loc["Extreme Altitude", "IVB"]], mode="markers", name=f"{name} · Harp Helú",
-                                     marker=dict(size=16, color=color, line=dict(color="#15161a", width=2))))
+                                     marker=dict(size=16, color=color, line=dict(color="#FFFFFF", width=2))))
         fig.update_layout(height=330, margin=dict(l=40, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                          font=dict(family="IBM Plex Sans", color=ui.DIM, size=11), legend=dict(font=dict(size=10), y=1, x=1.02),
-                          xaxis=dict(title="HB (in) · + lado del brazo", gridcolor="rgba(255,255,255,0.05)", zeroline=False),
-                          yaxis=dict(title="IVB (in)", gridcolor="rgba(255,255,255,0.05)", zeroline=False))
+                          font=dict(family="Inter", color=ui.DIM, size=11), legend=dict(font=dict(size=10), y=1, x=1.02),
+                          xaxis=dict(title="HB (in) · + lado del brazo", gridcolor="rgba(17,17,17,0.05)", zeroline=False),
+                          yaxis=dict(title="IVB (in)", gridcolor="rgba(17,17,17,0.05)", zeroline=False))
         g[0].plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         if show_lg and len(mm):
             g[0].markdown('<div class="dr-note">● azul / ✕ naranja = quintil alto / bajo de whiff real por pitch (resultados de la temporada) entre los pitchers de la liga con ese tipo (≥ 50 pitches), con su movimiento en Harp Helú. Compáralos con el marcador relleno del pitch.</div>', unsafe_allow_html=True)
@@ -183,7 +199,7 @@ with tabs[0]:
         dh = ss.loc["Extreme Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
         loss = hh.loc["No Altitude", "stuff_plus"] - hh.loc["Extreme Altitude", "stuff_plus"]
         loss_txt = (f"pierde {loss:.1f} de Stuff+" if loss >= 0.05 else f"gana {-loss:.1f} de Stuff+" if loss <= -0.05 else "conserva su Stuff+")
-        msg = (f'<div class="dr-label">Lectura</div><div style="font:600 14px/1.45 IBM Plex Sans;margin:8px 0 12px">'
+        msg = (f'<div class="dr-label">Lectura</div><div style="font:600 14px/1.45 Inter;margin:8px 0 12px">'
                + (f"Con los cambios en {', '.join(changed).lower()}, el Stuff+ en Harp Helú pasa de {hh.loc['Extreme Altitude', 'stuff_plus']:.1f} a "
                   f"{ss.loc['Extreme Altitude', 'stuff_plus']:.1f} ({dh:+.1f})." if changed else
                   f"El mismo pitch {loss_txt} al pasar del nivel del mar "
@@ -227,12 +243,12 @@ with tabs[1]:
         return xs, ys, z
     xs, ys, z = grid(tuple(sorted((k, v) for k, v in scen.items())), tuple(sorted((k, v) for k, v in ctx.items() if k not in ("PlateLocSide", "PlateLocHeight"))))
     with c[1]:
-        fig = go.Figure(go.Heatmap(x=xs, y=ys, z=z, colorscale=[[0, "#1d2a3a"], [0.5, "#2c2e34"], [1, "#d4262f"]], zmid=100,
+        fig = go.Figure(go.Heatmap(x=xs, y=ys, z=z, colorscale=[[0, "#E31E24"], [0.5, "#F5EFE3"], [1, "#111111"]], zmid=100,
                                    colorbar=dict(title="Location+", thickness=10), hovertemplate="x %{x:.2f} ft · z %{y:.2f} ft<br>Location+ %{z:.1f}<extra></extra>"))
-        fig.add_shape(type="rect", x0=-0.83, x1=0.83, y0=1.5, y1=3.5, line=dict(color="rgba(255,255,255,0.7)", width=1.5))
-        fig.add_trace(go.Scatter(x=[px], y=[pz], mode="markers", marker=dict(size=14, color="#eeede9", line=dict(color="#111", width=2)), showlegend=False))
+        fig.add_shape(type="rect", x0=-0.83, x1=0.83, y0=1.5, y1=3.5, line=dict(color="rgba(17,17,17,0.7)", width=1.5))
+        fig.add_trace(go.Scatter(x=[px], y=[pz], mode="markers", marker=dict(size=14, color="#E31E24", line=dict(color="#FFFFFF", width=2)), showlegend=False))
         fig.update_layout(height=430, margin=dict(l=40, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                          font=dict(family="IBM Plex Sans", color=ui.DIM, size=11),
+                          font=dict(family="Inter", color=ui.DIM, size=11),
                           xaxis=dict(title="Lado (ft) · vista del catcher", scaleanchor="y"), yaxis=dict(title="Altura (ft)"))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     with c[2]:
