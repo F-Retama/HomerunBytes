@@ -1,9 +1,10 @@
 [theme]
-base = "dark"
-primaryColor = "#d4262f"
-backgroundColor = "#101114"
-secondaryBackgroundColor = "#17181c"
-textColor = "#eeede9"
+# Paleta Diablos Rojos (rediseño nov-2026): base crema del uniforme de local, rojo escarlata y negro.
+base = "light"
+primaryColor = "#E31E24"
+backgroundColor = "#F5EFE3"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111111"
 font = "sans serif"
 
 [client]

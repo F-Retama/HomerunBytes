@@ -170,3 +170,14 @@ Salida en `video/salida/` (fuera de git): `video_entrega.mp4` y `subtitulos.srt`
 
 El formulario de entrega aclara que el jurado no corre código, así que el dashboard tiene que estar en línea. El bundle de `18` pesa ~400 MB porque guarda todos los lanzamientos. `25_dashboard_lite.py` arma `codigo/dashboard/lite/engine_lite.pkl` (15 MB): los modelos de 2026, una muestra de hasta 50 lanzamientos por pitcher y tipo y de 500 de la liga por tipo y mano (27 columnas, sin resultados ni IDs de juego, bateador o catcher), y los promedios y tablas de referencia calculados con todos los datos. `dashboard/lib/engine.py` lo usa solo cuando no existe el bundle completo. Contra la versión completa: scores oficiales idénticos (1.4e-14), punto de partida del Simulator exacto, escenarios del Simulator 0.11 puntos de Stuff+ en promedio (máximo 0.74), prospectos 0.22 y Game 0.02 (`25_dashboard_lite_check.csv`). El documento técnico suma la nota en la sección 7.4 y la sección 9, *Con más tiempo* (ahora 10 páginas). La app se hostea en Streamlit Community Cloud desde un repositorio privado aparte (`dashboard/`, sus tablas y el paquete); este repositorio público no incluye la muestra. Guía, sección 44.
 
+## Rediseño del dashboard (noviembre 2026)
+
+A partir del feedback de reorganizar las pantallas y resaltar el diferenciador:
+
+- **Orden por historia:** la app abre en **Inicio** y sigue Scouting → Game → Simulator; Roster y Player quedan como seguimiento semanal.
+- **Diferenciador visible en todas las pantallas:** barra de caída esperada (gris) contra caída real (rojo) del Stuff+ en Harp Helú y su exceso (`ui.brecha`). La esperada se calcula como `delta - exceso`, la misma regla de `23`.
+- **Scouting:** arriba, el perfil ideal (composiciones más alta y más baja, descuento por tipo según su nivel de evidencia) y los candidatos que caen menos de lo esperado; abajo, las seis pestañas de siempre.
+- **Game:** se lee como reporte del pitcher rival para los bateadores (primero los pitchers de otros equipos), con su arsenal contra lo esperado; los mapas por zona quedan debajo.
+- **Simulator, Roster y Player:** la barra del diferenciador arriba (en el Inbox, en la recomendación y en el pitch elegido) y el resto de las herramientas debajo de "Más detalle".
+- **Paleta Diablos Rojos:** tema claro con base crema, rojo escarlata, negro y guinda (`.streamlit/config.toml` y `lib/ui.py`); tipografías Space Grotesk e Inter.
+

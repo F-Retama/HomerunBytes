@@ -28,7 +28,7 @@ if pid not in set(pool.pitcher_anon_id):
     cand = pool[pool.pitcher_anon_id.isin(roster)]
     pid = (cand if len(cand) else pool).pitcher_anon_id.iloc[0]
 
-st.markdown('<a target="_self" href="./" class="dr-note" style="text-decoration:none">← Pitching Staff</a>', unsafe_allow_html=True)
+st.markdown('<div style="margin-top:18px"><a target="_self" href="roster" class="dr-note" style="text-decoration:none;font-weight:600;color:#C8161D">← Roster</a></div>', unsafe_allow_html=True)
 sel = st.columns([2.2, 1, 1.4], vertical_alignment="bottom")
 pid = sel[1].selectbox("Pitcher", pool.pitcher_anon_id.tolist(), index=pool.pitcher_anon_id.tolist().index(pid), format_func=ui.pid_label)
 if pid != state.get("last_pid"):
@@ -92,12 +92,16 @@ elif wd != wd:
                                   f"no se puede estimar su riesgo en altitud.")
 else:
     risk_dot, risk_txt = ui.RED, f"El {worst.AutoPitchType} ({worst.usage:.0%} de uso) {w_change} en Harp Helú: {w_move}."
+# Diferenciador en la recomendación: caída real del pitch recomendado contra la esperada para su tipo y nivel.
+_rr = A[(A.AutoPitchType == rec_pitch) & A.delta.notna() & A.exceso.notna()]
+rec_row = _rr.iloc[0] if len(_rr) else None
 c = st.columns([1.55, 1])
 c[0].markdown(
     f'<div class="dr-card" style="height:100%;min-height:230px"><div style="display:flex;gap:10px;align-items:center"><span class="dr-label">Current recommendation</span>'
     f'<span class="dr-badge" style="background:{kind_badge[1]}24;color:{kind_badge[1]}">● {kind_badge[0]}</span></div>'
-    f'<div style="font:700 23px/1.3 IBM Plex Sans;color:{ui.TEXT};margin:14px 0 16px">{rec_txt}</div>'
-    f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{ui.CODE.get(rec_pitch, "")}</span>{rec_pitch}</span>'
+    f'<div style="font:700 23px/1.3 Space Grotesk;color:{ui.TEXT};margin:14px 0 16px">{rec_txt}</div>'
+    + (f'<div style="margin:0 0 16px">{ui.brecha(rec_row.delta - rec_row.exceso, rec_row.delta)}</div>' if rec_row is not None else '')
+    + f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="dr-pill"><span class="dr-code">{ui.CODE.get(rec_pitch, "")}</span>{rec_pitch}</span>'
     f'<span style="margin-left:12px"><span class="dr-label">Confianza · altitud</span><br>{ui.conf_bars(rec_conf)}</span></div></div>', unsafe_allow_html=True)
 if res.stuff_harp == res.stuff_harp:
     pct_txt = f"percentil {100 * res.harp_pct:.0f} de los {res.AutoPitchType} de la liga; " if res.harp_pct == res.harp_pct else ""
@@ -109,10 +113,10 @@ else:
                     f"sus pitches no tienen movimiento medido o categoría de altitud.")
 c[1].markdown(
     f'<div class="dr-card" style="height:100%;min-height:230px"><div class="dr-label"><span style="color:{ui.GRN}">●</span> Primary strength</div>'
-    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin:8px 0 18px">{strength_txt}</div>'
+    f'<div style="font:600 14.5px/1.4 Inter;margin:8px 0 18px">{strength_txt}</div>'
     f'<div style="height:1px;background:{ui.LINE};margin-bottom:14px"></div>'
     f'<div class="dr-label"><span style="color:{risk_dot}">●</span> Primary risk</div>'
-    f'<div style="font:600 14.5px/1.4 IBM Plex Sans;margin-top:8px">{risk_txt}</div></div>', unsafe_allow_html=True)
+    f'<div style="font:600 14.5px/1.4 Inter;margin-top:8px">{risk_txt}</div></div>', unsafe_allow_html=True)
 k = st.columns([1, 1, 1, 1.6])
 # Stuff+ a nivel del mar, igual que el Roster (guía 40.1): el de temporada depende de en qué parques lanzó y queda como dato secundario.
 num = lambda v, f=".0f": "—" if v != v else format(v, f)
@@ -130,13 +134,13 @@ k[3].markdown(f'<div class="dr-card" style="padding:12px 16px;display:flex;gap:1
               f'{fit_detail}</div>', unsafe_allow_html=True)
 
 # ---------------- arsenal + fingerprint ----------------
-st.write("")
+ui.mas_detalle()
 c = st.columns([1.55, 1])
 rows = []
 for _, a in A.iterrows():
-    hi = "background:rgba(255,255,255,0.035);" if focus == a.AutoPitchType else ""
+    hi = "background:rgba(17,17,17,0.035);" if focus == a.AutoPitchType else ""
     rows.append(f'<tr style="{hi}"><td style="white-space:nowrap"><span class="dr-code">{a.code}</span> <b>{a.AutoPitchType}</b></td>'
-                f'<td style="white-space:nowrap"><span style="display:inline-block;width:{a.usage * 70:.0f}px;height:3px;background:#c6c8cd;border-radius:2px;vertical-align:middle"></span> '
+                f'<td style="white-space:nowrap"><span style="display:inline-block;width:{a.usage * 70:.0f}px;height:3px;background:#4D4A45;border-radius:2px;vertical-align:middle"></span> '
                 f'<span class="dr-mono">{a.usage:.0%}</span></td><td class="dr-mono"><b>{num(a.stuff_mar)}</b><div class="dr-note">temp. {num(a.stuff_plus)}</div></td><td class="dr-mono">{a.location_plus:.0f}</td>'
                 f'<td>{ui.delta_fmt(a.delta)}</td><td>{ui.fit_pill(a.fit)}</td><td>{ui.action_dot(a.action)}</td><td>{ui.conf_bars(a.evidence)}</td></tr>')
 c[0].markdown(
@@ -154,7 +158,7 @@ with c[1]:
     hh[0].markdown('<span class="dr-h2">Arsenal Fingerprint</span>', unsafe_allow_html=True)
     layer = hh[1].segmented_control("Capa", ["Both", "Nivel mar", "Extreme"], default="Both", label_visibility="collapsed")
     fig = go.Figure()
-    fig.add_hline(y=0, line=dict(color="rgba(255,255,255,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(255,255,255,0.15)"))
+    fig.add_hline(y=0, line=dict(color="rgba(17,17,17,0.15)")); fig.add_vline(x=0, line=dict(color="rgba(17,17,17,0.15)"))
     for _, a in A.iterrows():
         g = fac[fac.AutoPitchType == a.AutoPitchType].set_index("env")
         if not {"No Altitude", "Extreme Altitude"} <= set(g.index):
@@ -162,18 +166,18 @@ with c[1]:
         na, ea = g.loc["No Altitude"], g.loc["Extreme Altitude"]
         size = 10 + a.usage * 40
         if layer == "Both":
-            fig.add_trace(go.Scatter(x=[na.hb, ea.hb], y=[na.ivb, ea.ivb], mode="lines", line=dict(color="rgba(255,255,255,0.25)", dash="dot"), showlegend=False, hoverinfo="skip"))
+            fig.add_trace(go.Scatter(x=[na.hb, ea.hb], y=[na.ivb, ea.ivb], mode="lines", line=dict(color="rgba(17,17,17,0.25)", dash="dot"), showlegend=False, hoverinfo="skip"))
         if layer in ("Both", "Nivel mar"):
-            fig.add_trace(go.Scatter(x=[na.hb], y=[na.ivb], mode="markers", marker=dict(size=size, color="rgba(0,0,0,0)", line=dict(color="#9b9da4", width=2, dash=None)),
+            fig.add_trace(go.Scatter(x=[na.hb], y=[na.ivb], mode="markers", marker=dict(size=size, color="rgba(0,0,0,0)", line=dict(color="#A39E94", width=2, dash=None)),
                                      showlegend=False, hovertemplate=f"{a.AutoPitchType} · No Altitude ({na.fuente})<br>HB %{{x:.1f}} in · IVB %{{y:.1f}} in<extra></extra>"))
         if layer in ("Both", "Extreme"):
             fig.add_trace(go.Scatter(x=[ea.hb], y=[ea.ivb], mode="markers+text", text=[a.code], textposition="middle right",
-                                     textfont=dict(color="#c6c8cd", size=11), marker=dict(size=size, color="#eeede9", line=dict(color="#15161a", width=2)),
+                                     textfont=dict(color="#4D4A45", size=11), marker=dict(size=size, color="#111111", line=dict(color="#FFFFFF", width=2)),
                                      showlegend=False, hovertemplate=f"{a.AutoPitchType} · Extreme ({ea.fuente})<br>HB %{{x:.1f}} in · IVB %{{y:.1f}} in<extra></extra>"))
     fig.update_layout(height=360, margin=dict(l=40, r=10, t=10, b=40), paper_bgcolor=ui.PANEL, plot_bgcolor=ui.PANEL,
-                      font=dict(family="IBM Plex Sans", color=ui.DIM, size=11),
-                      xaxis=dict(title="HB (in) → · convención de diestro", range=[-22, 22], gridcolor="rgba(255,255,255,0.05)", zeroline=False),
-                      yaxis=dict(title="IVB (in) ↑", range=[-22, 24], gridcolor="rgba(255,255,255,0.05)", zeroline=False))
+                      font=dict(family="Inter", color=ui.DIM, size=11),
+                      xaxis=dict(title="HB (in) → · convención de diestro", range=[-22, 22], gridcolor="rgba(17,17,17,0.05)", zeroline=False),
+                      yaxis=dict(title="IVB (in) ↑", range=[-22, 24], gridcolor="rgba(17,17,17,0.05)", zeroline=False))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     v = "".join(f'<div><b class="dr-mono">{a.code}</b><br><span class="dr-mono">{a.velo:.1f}</span> <span class="dr-note">mph</span><br>'
                 f'<span class="dr-note dr-mono">rel {a.rel_height:.1f} ft</span></div>' for _, a in A.iterrows())
@@ -276,6 +280,6 @@ st.markdown(
     unsafe_allow_html=True)
 st.write("")
 st.markdown(f'<div class="dr-card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="dr-label">Siguiente paso</div>'
-            f'<div style="font:700 18px IBM Plex Sans;margin-top:6px">Probar los ajustes del {worst.AutoPitchType} en contexto Extreme Altitude</div></div>'
+            f'<div style="font:700 18px Inter;margin-top:6px">Probar los ajustes del {worst.AutoPitchType} en contexto Extreme Altitude</div></div>'
             f'<a class="dr-btn" style="background:{ui.ACCENT};color:#fff !important" target="_self" href="simulator?pid={pid}&season={year}&pitch={worst.AutoPitchType}">'
             f'Open in What-if Simulator →</a></div>', unsafe_allow_html=True)
